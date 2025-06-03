@@ -1,0 +1,1336 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { createClient } from "@/utils/supabase/client"; // Ensure this path is correct
+import { generatePengajuanExcelReport } from "@/utils/exportPengajuanToExcel"; 
+import { useRouter } from "next/navigation"; // Import useRouter
+
+// Define types
+interface PengajuanData {
+  id_pengajuan: string; // UUIDs are strings
+  kelompok_id: string;  // UUIDs are strings
+  dokumen_pengajuan: string;
+  wilayah_penangkapan: string;
+  status_dokumen: string;
+  status_verifikasi: string;
+  status_verifikasi_kabid: string;
+  catatan_verifikasi: string | null;
+  catatan_verifikasi_kabid: string | null;
+  created_at: string;
+  tanggal_pengajuan: string; // Added to resolve TypeScript error
+  nama_kub: string;
+  alamat_kub: string;
+  kabupaten_kota: string;
+  no_bast?: string | null;
+  dokumen_bast?: string | null;
+}
+
+interface DetailUsulan {
+  id_detail_usulan: string; // Assuming this might also be UUID or a string ID
+  pengajuan_id: string;   // To match PengajuanData.id_pengajuan (UUID)
+  nama_alat: string;
+  jumlah_alat: number;
+  harga_satuan: number;
+  harga_total: number;
+}
+
+interface AnggotaKelompok {
+  id_anggota: string; // Assuming this might also be UUID or a string ID
+  kelompok_id: string; // To match PengajuanData.kelompok_id (UUID)
+  nama_anggota: string;
+  jabatan: string;
+  nik: string;
+  no_kusuka: string;
+}
+
+interface DokumenChecklist {
+  proposal: boolean;
+  surat_usulan: boolean;
+  foto_ktp: boolean;
+  surat_ktm: boolean;
+  foto_rumah: boolean;
+  foto_alat_tangkap: boolean;
+  bpjs: boolean;
+  kis: boolean;
+  kartu_kusuka: boolean; // Added
+  foto_kapal: boolean;   // Added
+}
+
+// Type for raw data from Supabase before transformation
+type RawPengajuanFromSupabase = Omit<PengajuanData, 'nama_kub' | 'alamat_kub' | 'kabupaten_kota'> & {
+  kelompok: {
+    nama_kub: string;
+    alamat_kub: string;
+    kabupaten_kota: string;
+  } | null; 
+};
+
+// Constants for filter options
+const ALL_MONTHS_ID = [
+  "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+  "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+];
+
+const KABUPATEN_KOTA_LIST = [
+  "Banyuasin",
+  "Empat Lawang",
+  "Lahat",
+  "Muara Enim",
+  "Musi Banyuasin",
+  "Musi Rawas",
+  "Musi Rawas Utara",
+  "Ogan Ilir",
+  "Ogan Komering Ilir",
+  "Ogan Komering Ulu",
+  "Ogan Komering Ulu Selatan",
+  "Ogan Komering Ulu Timur",
+  "Penukal Abab Lematang Ilir",
+  "Lubuklinggau",
+  "Pagar Alam",
+  "Palembang",
+  "Prabumulih"
+].sort(); // Sort alphabetically for display
+
+export default function DataPengajuan() {
+  const supabase = createClient();
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(true);
+  const [isDetailLoading, setIsDetailLoading] = useState(false);
+  const [pengajuanList, setPengajuanList] = useState<PengajuanData[]>([]);
+  const [selectedPengajuan, setSelectedPengajuan] = useState<PengajuanData | null>(null);
+  const [detailUsulan, setDetailUsulan] = useState<DetailUsulan[]>([]);
+  const [anggotaKelompok, setAnggotaKelompok] = useState<AnggotaKelompok[]>([]);
+  const [showModal, setShowModal] = useState(false);
+  const [dokumenUrl, setDokumenUrl] = useState<string | null>(null);
+  const [isEditingItem, setIsEditingItem] = useState<string | null>(null); // Changed type to string | null
+  const [editItemData, setEditItemData] = useState<DetailUsulan | null>(null);
+  const [isExporting, setIsExporting] = useState(false); // State for export loading
+  
+  // BAST state
+  const [noBastInput, setNoBastInput] = useState<string>("");
+  const [bastFile, setBastFile] = useState<File | null>(null);
+  const [bastDokumenUrl, setBastDokumenUrl] = useState<string | null>(null);
+  const [showBastModal, setShowBastModal] = useState(false);
+
+  // Checklist state
+  const [dokumenChecklist, setDokumenChecklist] = useState<DokumenChecklist>({
+    proposal: false,
+    surat_usulan: false,
+    foto_ktp: false,
+    surat_ktm: false,
+    foto_rumah: false,
+    foto_alat_tangkap: false,
+    bpjs: false,
+    kis: false,
+    kartu_kusuka: false, // Added
+    foto_kapal: false    // Added
+  });
+
+  // Status verifikasi options
+  const statusOptions = ["Menunggu", "Diterima", "Ditolak"];
+  const [statusVerifikasi, setStatusVerifikasi] = useState("Menunggu");
+  const [catatan, setCatatan] = useState("");
+
+  // Filter states
+  const [filterStatusAdmin, setFilterStatusAdmin] = useState<string>("");
+  const [filterStatusKabid, setFilterStatusKabid] = useState<string>("");
+  const [filterBulan, setFilterBulan] = useState<string>("");
+  const [filterTahun, setFilterTahun] = useState<string>("");
+  const [filterKabupatenKota, setFilterKabupatenKota] = useState<string>("");
+  const [filterNamaKub, setFilterNamaKub] = useState<string>(""); // State for Nama KUB filter
+  const [availableBulan, setAvailableBulan] = useState<string[]>([]);
+  const [availableTahun, setAvailableTahun] = useState<string[]>([]);
+  const [availableKabupatenKota, setAvailableKabupatenKota] = useState<string[]>([]);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10; // Jumlah item per halaman, diubah menjadi 10
+
+  // Fetch all pengajuan data
+  useEffect(() => {
+    const fetchPengajuan = async () => {
+      setIsLoading(true);
+      try {
+        // Join pengajuan with kelompok to get nama_kub
+        const { data, error } = await supabase
+          .from('pengajuan')
+          .select(`
+            *,
+            kelompok:kelompok_id(nama_kub, alamat_kub, kabupaten_kota)
+          `)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        const rawData = data as RawPengajuanFromSupabase[];
+
+        // Transform data to include nama_kub directly
+        const formattedData = rawData.map((item) => ({
+          ...item,
+          nama_kub: item.kelompok?.nama_kub || 'Data Kelompok Tidak Ditemukan',
+          alamat_kub: item.kelompok?.alamat_kub || 'Data Kelompok Tidak Ditemukan',
+          kabupaten_kota: item.kelompok?.kabupaten_kota || 'Data Kelompok Tidak Ditemukan',
+        })) as PengajuanData[];
+
+        setPengajuanList(formattedData);
+
+        // Set static and calculated filter options
+        setAvailableBulan(ALL_MONTHS_ID);
+
+        const currentYear = new Date().getFullYear();
+        const lastThreeYears = [
+          currentYear.toString(),
+          (currentYear - 1).toString(),
+          (currentYear - 2).toString()
+        ];
+        setAvailableTahun(lastThreeYears);
+
+        setAvailableKabupatenKota(KABUPATEN_KOTA_LIST);
+
+      } catch (error) {
+        console.error("Error fetching pengajuan:", error);
+        alert("Gagal memuat data pengajuan");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchPengajuan();
+  }, []);
+
+  // Fetch detail when a pengajuan is selected
+  const handleViewDetail = async (pengajuan: PengajuanData) => {
+    // If clicking the already selected item, collapse it and reset states
+    if (selectedPengajuan?.id_pengajuan === pengajuan.id_pengajuan) {
+      setSelectedPengajuan(null);
+      setDetailUsulan([]);
+      setAnggotaKelompok([]);
+      setDokumenChecklist({ 
+        proposal: false, surat_usulan: false, foto_ktp: false, surat_ktm: false,
+        foto_rumah: false, foto_alat_tangkap: false, bpjs: false, kis: false,
+        kartu_kusuka: false, foto_kapal: false
+      });
+      setNoBastInput("");
+      setBastFile(null);
+      setStatusVerifikasi("Menunggu"); 
+      setCatatan(""); 
+      setIsEditingItem(null);
+      setEditItemData(null);
+      return;
+    }
+
+    // If selecting a new item (or the first item)
+    setIsDetailLoading(true);
+    setSelectedPengajuan(pengajuan); // Set the new selection
+
+    // Reset states before fetching new data for the newly selected item
+    setDetailUsulan([]);
+    setAnggotaKelompok([]);
+    setDokumenChecklist({ 
+      proposal: false, surat_usulan: false, foto_ktp: false, surat_ktm: false,
+      foto_rumah: false, foto_alat_tangkap: false, bpjs: false, kis: false,
+      kartu_kusuka: false, foto_kapal: false
+    });
+    setNoBastInput("");
+    setBastFile(null); 
+    setStatusVerifikasi("Menunggu"); 
+    setCatatan(""); 
+    setIsEditingItem(null); 
+    setEditItemData(null);
+
+    try {
+      // Fetch detail usulan
+      const { data: usulanData, error: usulanError } = await supabase
+        .from('detail_usulan')
+        .select('*')
+        .eq('pengajuan_id', pengajuan.id_pengajuan);
+
+      if (usulanError) throw usulanError;
+      setDetailUsulan(usulanData as DetailUsulan[]);
+
+      // Fetch anggota kelompok
+      const { data: anggotaData, error: anggotaError } = await supabase
+        .from('anggota_kelompok')
+        .select('*')
+        .eq('kelompok_id', pengajuan.kelompok_id);
+
+      if (anggotaError) throw anggotaError;
+      setAnggotaKelompok(anggotaData as AnggotaKelompok[]);
+
+      // Parse status_dokumen if it exists (This will now populate the cleared state)
+      if (pengajuan.status_dokumen) {
+        try {
+          // Ensure it's a non-empty string before attempting to parse
+          if (typeof pengajuan.status_dokumen === 'string' && pengajuan.status_dokumen.trim() !== '') {
+            const parsedChecklist = JSON.parse(pengajuan.status_dokumen);
+            setDokumenChecklist(parsedChecklist);
+          }
+        } catch (e) {
+          console.error("Error parsing status_dokumen JSON:", e, "Raw value:", pengajuan.status_dokumen);
+          // The dokumenChecklist state is already reset to default, so UI will show a blank checklist.
+        }
+      } else {
+        // If status_dokumen is null/empty, the state is already reset above
+      }
+
+      // Set status verifikasi (This will now populate the cleared state)
+      setStatusVerifikasi(pengajuan.status_verifikasi || "Menunggu");
+      setCatatan(pengajuan.catatan_verifikasi || "");
+      
+      // Set BAST info (This will now populate the cleared state)
+      setNoBastInput(pengajuan.no_bast || "");
+      // bastFile is already reset above
+      // bastDokumenUrl is already reset above
+
+    } catch (error) {
+      console.error("Error fetching details:", error);
+      alert("Gagal memuat detail pengajuan");
+      setSelectedPengajuan(null); 
+    } finally {
+      setIsDetailLoading(false);
+    }
+  };
+
+  // Check if pengajuan is locked (verified by Kepala Bidang)
+  const isPengajuanLocked = (): boolean => {
+    // Perubahan: Admin selalu dapat mengedit, terlepas dari status verifikasi Kabid.
+    return false;
+    // Logika asli yang dikomentari:
+    // return !!selectedPengajuan?.status_verifikasi_kabid && 
+    //        ["Disetujui Sepenuhnya", "Disetujui Sebagian", "Ditolak"].includes(selectedPengajuan.status_verifikasi_kabid);
+  };
+
+  //   Handle document preview
+  const handlePreviewDocument = async () => {
+    if (!selectedPengajuan || !selectedPengajuan.dokumen_pengajuan) {
+      alert("Path dokumen pengajuan tidak tersedia.");
+      return;
+    }
+
+    const filePath = selectedPengajuan.dokumen_pengajuan;
+    console.log("Attempting to get signed URL for (pengajuan):", filePath);
+
+    try {
+      const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+        .from('uploads')
+        .createSignedUrl(filePath, 300); // 300 seconds (5 minutes) validity
+
+      if (signedUrlError) {
+        console.error("Error creating signed URL for pengajuan:", signedUrlError); // Log a full error object
+        // Fallback to public URL
+        console.log("Falling back to public URL for (pengajuan):", filePath);
+        const { data: publicURLData } = supabase.storage
+          .from('uploads')
+          .getPublicUrl(filePath);
+
+        if (publicURLData && publicURLData.publicUrl) {
+          console.log("Public URL obtained for pengajuan:", publicURLData.publicUrl);
+          setDokumenUrl(publicURLData.publicUrl);
+          setShowModal(true);
+        } else {
+          console.error("Failed to get public URL for pengajuan or public URL is null. Public URL Data:", publicURLData);
+          alert("Gagal memuat dokumen pengajuan. Tidak dapat membuat URL pratinjau.");
+        }
+      } else if (signedUrlData && signedUrlData.signedUrl) {
+        console.log("Signed URL obtained for pengajuan:", signedUrlData.signedUrl);
+        setDokumenUrl(signedUrlData.signedUrl);
+        setShowModal(true);
+      } else {
+        console.error("Signed URL data for pengajuan is null or signedUrl property is missing.");
+        alert("Gagal memuat dokumen pengajuan. URL pratinjau tidak valid.");
+      }
+    } catch (err: any) {
+      console.error("Unexpected error in handlePreviewDocument:", err.message);
+      alert("Terjadi kesalahan tak terduga saat mencoba memuat dokumen pengajuan.");
+    }
+  };
+
+  // Handle document download
+  const handleDownloadDocument = async () => {
+    if (!selectedPengajuan || !selectedPengajuan.dokumen_pengajuan) {
+      alert("Path dokumen pengajuan tidak tersedia.");
+      return;
+    }
+
+    const filePath = selectedPengajuan.dokumen_pengajuan;
+    console.log("Attempting to get signed URL for download (pengajuan):", filePath);
+
+    try {
+      const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+        .from('uploads')
+        .createSignedUrl(filePath, 300, { download: true }); // Add download: true
+
+      let downloadUrl: string | null = null;
+
+      if (signedUrlError) {
+        console.error("Error creating signed URL for download (pengajuan):", signedUrlError.message);
+        console.log("Falling back to public URL for download (pengajuan):", filePath);
+        const { data: publicURLData } = supabase.storage
+          .from('uploads')
+          .getPublicUrl(filePath);
+        
+        if (publicURLData && publicURLData.publicUrl) {
+          downloadUrl = publicURLData.publicUrl;
+        }
+      } else if (signedUrlData && signedUrlData.signedUrl) {
+        downloadUrl = signedUrlData.signedUrl;
+      }
+
+      if (downloadUrl) {
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.setAttribute('download', filePath.substring(filePath.lastIndexOf('/') + 1)); // Suggest a filename
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else {
+        alert("Gagal mendapatkan URL unduhan untuk dokumen pengajuan.");
+      }
+    } catch (err: any) {
+      console.error("Unexpected error in handleDownloadDocument:", err.message);
+      alert("Terjadi kesalahan tak terduga saat mencoba mengunduh dokumen pengajuan.");
+    }
+  };
+
+  // Handle BAST document preview
+  const handlePreviewBastDocument = async () => {
+    if (!selectedPengajuan || !selectedPengajuan.dokumen_bast) {
+      alert("Path Dokumen BAST tidak tersedia.");
+      return;
+    }
+    const filePath = selectedPengajuan.dokumen_bast;
+    console.log("Attempting to get signed URL for (BAST):", filePath);
+    try {
+      const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+        .from('uploads')
+        .createSignedUrl(filePath, 300); // 300 seconds (5 minutes) validity
+
+      if (signedUrlError) {
+        console.error("Error creating signed URL for BAST:", signedUrlError); // Log a full error object
+        // Fallback to public URL
+        console.log("Falling back to public URL for (BAST):", filePath);
+        const { data: publicURLData } = supabase.storage
+          .from('uploads')
+          .getPublicUrl(filePath);
+
+        if (publicURLData && publicURLData.publicUrl) {
+          console.log("Public URL obtained for BAST:", publicURLData.publicUrl);
+          setBastDokumenUrl(publicURLData.publicUrl);
+          setShowBastModal(true);
+        } else {
+          console.error("Failed to get public URL for BAST or public URL is null. Public URL Data:", publicURLData);
+          alert("Gagal memuat dokumen BAST. Tidak dapat membuat URL pratinjau.");
+        }
+      } else if (signedUrlData && signedUrlData.signedUrl) {
+        console.log("Signed URL obtained for BAST:", signedUrlData.signedUrl);
+        setBastDokumenUrl(signedUrlData.signedUrl);
+        setShowBastModal(true);
+      } else {
+        console.error("Signed URL data for BAST is null or signedUrl property is missing.");
+        alert("Gagal memuat dokumen BAST. URL pratinjau tidak valid.");
+      }
+    } catch (err: any) {
+      console.error("Unexpected error in handlePreviewBastDocument:", err.message);
+      alert("Terjadi kesalahan tak terduga saat mencoba memuat dokumen BAST.");
+    }
+  };
+
+  // Handle updating an item's quantity
+  const startEditItem = (item: DetailUsulan) => { // id_detail_usulan is now string
+    if (isPengajuanLocked()) {
+      alert("Tidak dapat mengedit pengajuan yang telah diverifikasi oleh Kepala Bidang");
+      return;
+    }
+    
+    setIsEditingItem(item.id_detail_usulan);
+    setEditItemData({
+       ...item,
+       harga_satuan: item.harga_satuan || 0,
+       harga_total: item.harga_total || item.jumlah_alat * (item.harga_satuan || 0)  
+      });
+  };
+
+  const saveEditItem = async () => {
+    if (!editItemData || isEditingItem === null || isPengajuanLocked()) return; // Check isEditingItem for null
+  
+    const jumlahAlat = editItemData.jumlah_alat || 0;
+    const hargaSatuan = editItemData.harga_satuan || 0;
+
+    try {
+      // Only update jumlah_alat and harga_satuan, not harga_total
+      const { error } = await supabase
+        .from('detail_usulan')
+        .update({ 
+          jumlah_alat: jumlahAlat,
+          harga_satuan: hargaSatuan
+        })
+        .eq('id_detail_usulan', isEditingItem);
+  
+      if (error) throw error;
+  
+      // Update the local state - still calculate harga_total for UI
+      setDetailUsulan(
+        detailUsulan.map((item: DetailUsulan) => // Explicitly type item
+          item.id_detail_usulan === isEditingItem ? {
+            ...editItemData,
+            jumlah_alat: jumlahAlat,
+            harga_satuan: hargaSatuan,
+            harga_total: jumlahAlat * hargaSatuan // Calculate for display purposes
+          } : item
+        )
+      );
+  
+      // If updating total in pengajuan table is needed, calculate based on all items
+      if (selectedPengajuan) {
+        const newTotal = detailUsulan
+          .map((item: DetailUsulan) => { // Explicitly type item
+            if (item.id_detail_usulan === isEditingItem) {
+              return jumlahAlat * hargaSatuan;
+            } else {
+              return item.harga_total || item.jumlah_alat * (item.harga_satuan || 0) || 0;
+            }
+          })
+          .reduce((sum, current) => sum + current, 0);
+
+        await supabase
+          .from('pengajuan')
+          .update({ total_keseluruhan: newTotal })
+          .eq('id_pengajuan', selectedPengajuan.id_pengajuan);
+      }
+  
+      setIsEditingItem(null);
+      setEditItemData(null);
+  
+    } catch (error) {
+      console.error("Error updating item:", error);
+      alert("Gagal menyimpan perubahan");
+    }
+  };
+
+  const cancelEditItem = () => {
+    setIsEditingItem(null);
+    setEditItemData(null);
+  };
+
+  // Delete an item
+  const handleDeleteItem = async (id: string) => { // id_detail_usulan is now string
+    if (isPengajuanLocked()) {
+      alert("Tidak dapat menghapus item pada pengajuan yang telah diverifikasi oleh Kepala Bidang");
+      return;
+    }
+    
+    if (!confirm("Yakin ingin menghapus item ini?")) return;
+
+    try {
+      const { error } = await supabase
+        .from('detail_usulan')
+        .delete()
+        .eq('id_detail_usulan', id);
+
+      if (error) throw error;
+
+      // Update local state
+      setDetailUsulan(detailUsulan.filter((item: DetailUsulan) => item.id_detail_usulan !== id)); // Explicitly type item
+
+    } catch (error) {
+      console.error("Error deleting item:", error);
+      alert("Gagal menghapus item");
+    }
+  };
+
+  // Handle document checklist changes
+  const handleChecklistChange = (field: keyof DokumenChecklist) => {
+    if (isPengajuanLocked()) {
+      alert("Tidak dapat mengubah checklist pada pengajuan yang telah diverifikasi oleh Kepala Bidang");
+      return;
+    }
+    
+    setDokumenChecklist({
+      ...dokumenChecklist,
+      [field]: !dokumenChecklist[field]
+    });
+  };
+
+  // Save verification status
+  const saveVerification = async () => {
+    if (!selectedPengajuan || isPengajuanLocked()) {
+      if (isPengajuanLocked()) {
+        alert("Tidak dapat mengubah status verifikasi pengajuan yang telah diverifikasi oleh Kepala Bidang");
+      }
+      return;
+    }
+
+    try {
+      // Convert checklist to JSON string
+      const checklistJson = JSON.stringify(dokumenChecklist);
+      let bastFilePath: string | undefined = selectedPengajuan.dokumen_bast || undefined;
+
+      // Handle BAST file upload
+      if (bastFile) {
+        const filePath = `kelompok_${selectedPengajuan.kelompok_id}/dokumen_bast/${Date.now()}_${bastFile.name}`;
+        const { data: fileData, error: fileError } = await supabase.storage
+          .from("uploads")
+          .upload(filePath, bastFile);
+
+        if (fileError) throw fileError;
+        if (!fileData || !fileData.path) throw new Error("Gagal mendapatkan path dokumen BAST setelah upload.");
+        bastFilePath = fileData.path;
+      }
+
+      const updateData: Partial<PengajuanData> = {
+        status_dokumen: checklistJson,
+        status_verifikasi: statusVerifikasi,
+        catatan_verifikasi: catatan,
+        no_bast: noBastInput || null,
+      };
+
+      if (bastFilePath !== undefined) {
+        updateData.dokumen_bast = bastFilePath;
+      }
+
+      const { error } = await supabase
+        .from('pengajuan')
+        .update(updateData)
+        .eq('id_pengajuan', selectedPengajuan.id_pengajuan);
+
+      if (error) throw error;
+
+      // Update the local state
+      const updatedSelectedPengajuan = {
+        ...selectedPengajuan,
+        ...updateData, // Merge updated fields
+      };
+      setPengajuanList(
+        pengajuanList.map(item =>
+          item.id_pengajuan === selectedPengajuan.id_pengajuan
+            ? {
+              ...item,
+              status_dokumen: checklistJson,
+              status_verifikasi: statusVerifikasi,
+              catatan_verifikasi: catatan,
+              no_bast: noBastInput || null,
+              dokumen_bast: bastFilePath || item.dokumen_bast // Keep old if not updated
+            }
+            : item
+        )
+      );
+      setSelectedPengajuan(null); // Langsung kembali ke daftar dengan mengosongkan item terpilih
+      alert("Data Anda Berhasil Disimpan"); // Pesan sukses
+
+    } catch (error) {
+      console.error("Error saving verification:", error);
+      alert("Gagal menyimpan data"); // Pesan error
+    }
+  };
+
+  // Get status badge color
+  const getStatusBadgeColor = (status: string) => {
+    switch (status) {
+      case "Diterima": return "bg-emerald-100 text-emerald-700 dark:bg-emerald-700 dark:text-emerald-200";
+      case "Ditolak": return "bg-rose-100 text-rose-700 dark:bg-rose-700 dark:text-rose-200";
+      case "Disetujui Sepenuhnya": return "bg-emerald-100 text-emerald-700 dark:bg-emerald-700 dark:text-emerald-200";
+      case "Disetujui Sebagian": return "bg-sky-100 text-sky-700 dark:bg-sky-700 dark:text-sky-200";
+      default: return "bg-slate-100 text-slate-700 dark:bg-slate-600 dark:text-slate-200"; // Menunggu
+    }
+  };
+
+  // Get status badge color for Kabid verification
+  const getKabidStatusBadgeColor = (status: string) => {
+    switch (status) {
+      case "Disetujui Sepenuhnya": return "bg-emerald-100 text-emerald-700 dark:bg-emerald-700 dark:text-emerald-200";
+      case "Disetujui Sebagian": return "bg-sky-100 text-sky-700 dark:bg-sky-700 dark:text-sky-200";
+      case "Ditolak": return "bg-rose-100 text-rose-700 dark:bg-rose-700 dark:text-rose-200";
+      default: return "bg-slate-100 text-slate-700 dark:bg-slate-600 dark:text-slate-200"; // Menunggu
+    }
+  };
+
+  // Filtered data
+  const filteredPengajuanList = pengajuanList.filter((p: PengajuanData) => { // Explicitly type p
+    const pengajuanDate = new Date(p.created_at);
+    const pengajuanBulan = pengajuanDate.toLocaleString('id-ID', { month: 'long' });
+    const pengajuanTahun = pengajuanDate.getFullYear().toString();
+
+    return (
+      (filterStatusAdmin === "" || p.status_verifikasi === filterStatusAdmin) &&
+      (filterStatusKabid === "" || p.status_verifikasi_kabid === filterStatusKabid) &&
+      (filterBulan === "" || pengajuanBulan === filterBulan) &&
+      (filterTahun === "" || pengajuanTahun === filterTahun) &&
+      (filterKabupatenKota === "" || p.kabupaten_kota === filterKabupatenKota) &&
+      (filterNamaKub === "" || p.nama_kub.toLowerCase().includes(filterNamaKub.toLowerCase()))
+    );
+  });
+
+  // Pagination logic
+  const indexOfLastItem = currentPage * ITEMS_PER_PAGE;
+  const indexOfFirstItem = indexOfLastItem - ITEMS_PER_PAGE;
+  const currentItems = filteredPengajuanList.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredPengajuanList.length / ITEMS_PER_PAGE);
+
+
+  // Handle export to Excel
+  const handleExportToExcel = async () => {
+    if (filteredPengajuanList.length === 0) {
+      alert("Tidak ada data untuk diekspor.");
+      return;
+    }
+    setIsExporting(true); // Use the correct state setter
+    try {
+    const result = await generatePengajuanExcelReport(filteredPengajuanList, supabase); 
+      if (result.success) {
+        // Optional: alert("Laporan Excel berhasil dibuat dan diunduh."); // The utility already handles download
+      } else {
+        alert(result.message || "Gagal membuat laporan Excel.");
+      }
+    } catch (error) {
+      console.error("Error exporting to Excel:", error);
+      alert("Terjadi kesalahan saat mengekspor ke Excel.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // Handle export to Excel for approved (sebagian & sepenuhnya) by Kabid
+  const handleExportApprovedKabidToExcel = async () => {
+    // Filter data specifically for "Disetujui Sebagian" and "Disetujui Sepenuhnya" by Kabid
+    // while still respecting other active filters (Status Admin, Bulan, Tahun, Kabupaten/Kota)
+    const approvedKabidData = pengajuanList.filter((p: PengajuanData) => { // Explicitly type p
+      const pengajuanDate = new Date(p.created_at);
+      const pengajuanBulan = pengajuanDate.toLocaleString('id-ID', { month: 'long' });
+      const pengajuanTahun = pengajuanDate.getFullYear().toString();
+
+      return (
+        (p.status_verifikasi_kabid === "Disetujui Sebagian" || p.status_verifikasi_kabid === "Disetujui Sepenuhnya") &&
+        (filterStatusAdmin === "" || p.status_verifikasi === filterStatusAdmin) &&
+        (filterBulan === "" || pengajuanBulan === filterBulan) &&
+        (filterTahun === "" || pengajuanTahun === filterTahun) &&
+        (filterKabupatenKota === "" || p.kabupaten_kota === filterKabupatenKota)
+      );
+    });
+
+    if (approvedKabidData.length === 0) {
+      alert("Tidak ada data pengajuan yang disetujui (sebagian/sepenuhnya) oleh Kepala Bidang untuk diekspor berdasarkan filter lainnya.");
+      return;
+    }
+    setIsExporting(true); // Use the correct state setter
+    try {
+  const result = await generatePengajuanExcelReport(approvedKabidData, supabase); 
+      if (!result.success) {
+        alert(result.message || "Gagal membuat laporan Excel untuk data yang disetujui Kabid.");
+      }
+    } catch (error) {
+      console.error("Error exporting approved Kabid data to Excel:", error);
+      alert("Terjadi kesalahan saat mengekspor data yang disetujui Kabid ke Excel.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-100 dark:bg-slate-900">
+      <div className="container mx-auto p-4 md:p-6">
+        <h1 className="text-2xl md:text-3xl font-bold mb-6 text-slate-800 dark:text-slate-100">Data Pengajuan Bantuan</h1>
+
+      <div className="mb-6 p-4 md:p-6 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800 shadow-lg">
+        <div className="flex flex-wrap items-end gap-x-4 gap-y-2">
+          <div className="flex-grow min-w-[150px] sm:min-w-[200px]">
+            <label htmlFor="filterNamaKub" className="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-0.5">Nama KUB</label>
+            <input
+              type="text"
+              id="filterNamaKub"
+              value={filterNamaKub}
+              onChange={(e) => setFilterNamaKub(e.target.value)}
+              placeholder="Cari Nama KUB..."
+              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-sky-500 focus:border-sky-500 transition-colors"
+            />
+          </div>
+          <div className="flex-grow min-w-[150px] sm:min-w-[180px]">
+            <label htmlFor="filterStatusAdmin" className="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-0.5">Status Admin</label>
+            <select
+              id="filterStatusAdmin"
+              value={filterStatusAdmin}
+              onChange={(e) => setFilterStatusAdmin(e.target.value)}
+              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-sky-500 focus:border-sky-500 transition-colors"
+            >
+              <option value="">Semua Status Admin</option>
+              {statusOptions.map(status => <option key={status} value={status}>{status}</option>)}
+            </select>
+          </div>
+          <div className="flex-grow min-w-[150px] sm:min-w-[180px]">
+            <label htmlFor="filterStatusKabid" className="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-0.5">Status Kabid</label>
+            <select
+              id="filterStatusKabid"
+              value={filterStatusKabid}
+              onChange={(e) => setFilterStatusKabid(e.target.value)}
+              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-sky-500 focus:border-sky-500 transition-colors"
+            >
+              <option value="">Semua Status Kabid</option>
+              {/* Assuming these are the possible Kabid statuses */}
+              <option value="Menunggu">Menunggu</option>
+              <option value="Disetujui Sepenuhnya">Disetujui Sepenuhnya</option>
+              <option value="Disetujui Sebagian">Disetujui Sebagian</option>
+              <option value="Ditolak">Ditolak</option>
+            </select>
+          </div>
+          <div className="flex-grow min-w-[120px] sm:min-w-[150px]">
+            <label htmlFor="filterBulan" className="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-0.5">Bulan</label>
+            <select
+              id="filterBulan"
+              value={filterBulan}
+              onChange={(e) => setFilterBulan(e.target.value)}
+              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-sky-500 focus:border-sky-500 transition-colors"
+            >
+              <option value="">Semua Bulan</option>
+              {availableBulan.map(bulan => <option key={bulan} value={bulan}>{bulan}</option>)}
+            </select>
+          </div>
+          <div className="flex-grow min-w-[100px] sm:min-w-[120px]">
+            <label htmlFor="filterTahun" className="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-0.5">Tahun</label>
+            <select
+              id="filterTahun"
+              value={filterTahun}
+              onChange={(e) => setFilterTahun(e.target.value)}
+              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-sky-500 focus:border-sky-500 transition-colors"
+            >
+              <option value="">Semua Tahun</option>
+              {availableTahun.map(tahun => <option key={tahun} value={tahun}>{tahun}</option>)}
+            </select>
+          </div>
+          <div className="flex-grow min-w-[150px] sm:min-w-[180px]">
+            <label htmlFor="filterKabupatenKota" className="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-0.5">Kabupaten/Kota</label>
+            <select
+              id="filterKabupatenKota"
+              value={filterKabupatenKota}
+              onChange={(e) => setFilterKabupatenKota(e.target.value)}
+              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-sky-500 focus:border-sky-500 transition-colors"
+            >
+              <option value="">Semua Kabupaten/Kota</option>
+              {availableKabupatenKota.map(kab => <option key={kab} value={kab}>{kab}</option>)}
+            </select>
+          </div>
+          {/* Anda bisa menambahkan tombol "Reset Filter" di sini jika diinginkan */}
+          {/* <button 
+            onClick={() => {
+              setFilterStatusAdmin("");
+              setFilterStatusKabid("");
+              setFilterBulan("");
+              setFilterTahun("");
+              setFilterKabupatenKota("");
+              setFilterNamaKub(""); // Reset filter Nama KUB juga
+            }}
+            className="px-3 py-1.5 bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-md text-sm hover:bg-slate-300 dark:hover:bg-slate-500"
+          >
+            Reset
+          </button> */}
+        </div>
+        {/* Export Buttons - New Position */}
+        {!isLoading && pengajuanList.length > 0 && (
+          <div className="mt-4 flex flex-col sm:flex-row gap-2">
+            <button
+              onClick={handleExportToExcel}
+              disabled={isExporting || filteredPengajuanList.length === 0}
+              className="w-full sm:w-auto px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-md shadow-sm hover:shadow-md transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center text-sm"
+            >
+              {isExporting ? (
+                <><svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Mengekspor...</>
+              ) : "Export Sesuai Filter"}
+            </button>
+            <button
+              onClick={handleExportApprovedKabidToExcel}
+              disabled={isExporting}
+              className="w-full sm:w-auto px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md shadow-sm hover:shadow-md transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center text-sm"
+            >
+              {isExporting ? (
+                <><svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Mengekspor...</>
+              ) : "Export Disetujui Kabid"}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Full-width container for list and expandable details */}
+      <div className="w-full bg-white dark:bg-slate-800 p-4 md:p-5 rounded-xl shadow-lg flex flex-col">
+          <h2 className="font-semibold text-xl mb-4 text-slate-800 dark:text-slate-100 border-b pb-3 border-slate-200 dark:border-slate-700">Daftar Pengajuan</h2>
+          {isLoading ? (
+            <p className="text-center py-4 text-slate-500 dark:text-slate-400">Memuat data...</p>
+          ) : pengajuanList.length === 0 ? (
+            <p className="text-center py-4 text-slate-500 dark:text-slate-400 flex-grow flex items-center justify-center">Tidak ada data pengajuan</p>
+          ) : (
+            <>
+              <div className="space-y-2.5 flex-grow pr-1"> {/* Removed overflow and max-h */}
+                {currentItems.length > 0 ? currentItems.map((item) => (
+                  <div key={item.id_pengajuan} className="border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                    <div
+                      className={`p-4 cursor-pointer transition-colors duration-200 ease-in-out rounded-t-lg
+                        ${selectedPengajuan?.id_pengajuan === item.id_pengajuan 
+                          ? 'bg-sky-100 dark:bg-sky-700/60' 
+                          : 'hover:bg-slate-50 dark:hover:bg-slate-700/40'
+                      }`}
+                      onClick={() => handleViewDetail(item)}
+                    >
+                      <div className="flex justify-between items-center">
+                        <div className="flex-grow">
+                          <span className="font-semibold text-sm text-slate-800 dark:text-slate-100 truncate block" title={item.nama_kub}> {/* text-base to text-sm */}
+                              {item.nama_kub}
+                          </span>
+                          <div className="flex items-center text-xs text-slate-500 dark:text-slate-400 mt-0"> {/* mt-0.5 to mt-0 */}
+                            <span>
+                              {item.wilayah_penangkapan === 'perairan_umum_daratan' ? 'Daratan' : 'Laut'}
+                            </span>
+                            <span className="mx-1.5">·</span>
+                            <span className="whitespace-nowrap">
+                              {new Date(item.tanggal_pengajuan).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2 flex-shrink-0 ml-2">
+                          <span 
+                            className={`text-[0.7rem] px-1.5 py-0.5 rounded-full whitespace-nowrap ${getStatusBadgeColor(item.status_verifikasi || 'Menunggu')}`} /* Adjusted text size and padding */
+                            title={`Admin: ${item.status_verifikasi || 'Menunggu'}`}
+                          >
+                            {item.status_verifikasi || 'Menunggu'}
+                          </span>
+                          {item.status_verifikasi_kabid && (
+                            <span 
+                              className={`text-[0.7rem] px-1.5 py-0.5 rounded-full whitespace-nowrap ${getKabidStatusBadgeColor(item.status_verifikasi_kabid)} flex items-center`} /* Adjusted text size and padding */
+                              title={`Kabid: ${item.status_verifikasi_kabid}`}
+                            >
+                              {item.status_verifikasi_kabid}
+                              {["Disetujui Sepenuhnya", "Disetujui Sebagian", "Ditolak"].includes(item.status_verifikasi_kabid) && (
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 ml-1 text-slate-500 dark:text-slate-400" viewBox="0 0 20 20" fill="currentColor">
+                                  <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                                </svg>
+                              )}
+                            </span>
+                          )}
+                          <div className="flex items-center text-slate-500 dark:text-slate-400">
+                            <span className="text-xs mr-1">Detail</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 transform transition-transform duration-200 ${selectedPengajuan?.id_pengajuan === item.id_pengajuan ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Expanded Detail Section */}
+                    {selectedPengajuan?.id_pengajuan === item.id_pengajuan && (
+                      <div className="p-4 md:p-6 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-200 dark:border-slate-600 rounded-b-lg">
+                        {isDetailLoading ? (
+                          <p className="text-center py-4 text-slate-500 dark:text-slate-400">Memuat detail...</p>
+                        ) : (
+                          <div>
+                            {/* Content from original right column starts here */}
+                            <div className="mb-6 p-4 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-700/50">
+                              <div className="flex justify-between items-start mb-2">
+                                <div>
+                                  <h3 className="font-medium text-lg text-slate-800 dark:text-slate-100">{selectedPengajuan.nama_kub}</h3>
+                                  <div className="text-sm mt-1 text-slate-600 dark:text-slate-300">
+                                    <span className="font-medium text-slate-700 dark:text-slate-200">Alamat KUB:</span>{' '}
+                                    {selectedPengajuan.alamat_kub}
+                                  </div>
+                                  <div className="text-sm text-slate-600 dark:text-slate-300">
+                                    <span className="font-medium text-slate-700 dark:text-slate-200">Kabupaten/Kota:</span>{' '}
+                                    {selectedPengajuan.kabupaten_kota}
+                                  </div>
+                                  <div className="text-sm text-slate-600 dark:text-slate-300">
+                                    <span className="font-medium text-slate-700 dark:text-slate-200">Wilayah Penangkapan:</span>{' '}
+                                    {selectedPengajuan.wilayah_penangkapan === 'perairan_umum_daratan' ? 'Perairan Daratan' : 'Laut'}
+                                  </div>
+                                  <div className="text-sm text-slate-600 dark:text-slate-300">
+                                    <span className="font-medium text-slate-700 dark:text-slate-200">Tanggal Pengajuan:</span>{' '}
+                                    {new Date(selectedPengajuan.tanggal_pengajuan).toLocaleDateString('id-ID', {
+                                      day: 'numeric', month: 'long', year: 'numeric'
+                                    })}
+                                  </div>
+                                </div>
+                                <div className="flex flex-col items-end flex-shrink-0 ml-4">
+                                  <span className={`text-sm px-2 py-1 rounded-full ${getStatusBadgeColor(selectedPengajuan.status_verifikasi || 'Menunggu')}`}>
+                                    Admin: {selectedPengajuan.status_verifikasi || 'Menunggu'}
+                                  </span>
+                                  {selectedPengajuan.status_verifikasi_kabid && (
+                                    <span className={`text-sm px-2 py-1 rounded-full mt-1.5 ${getKabidStatusBadgeColor(selectedPengajuan.status_verifikasi_kabid)}`}>
+                                      Kabid: {selectedPengajuan.status_verifikasi_kabid}
+                                    </span>
+                                  )}
+                                  {isPengajuanLocked() && (
+                                    <span className="mt-1.5 text-xs text-slate-500 dark:text-slate-400 flex items-center">
+                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1 text-slate-400 dark:text-slate-500" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                                      </svg>
+                                      Terkunci
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex space-x-4 mt-3 pt-3 border-t border-slate-200 dark:border-slate-600">
+                                <button
+                                  onClick={handlePreviewDocument}
+                                  className="text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300 text-sm underline"
+                                >
+                                  Lihat Dokumen Pengajuan
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Detail Usulan Section */}
+                            <div className="mb-6 p-4 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-700/50">
+                              <h3 className="font-medium mb-3 text-slate-700 dark:text-slate-200">Detail Usulan Alat Tangkap</h3>
+                              <div className="overflow-x-auto rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
+                                <table className="min-w-full bg-white dark:bg-slate-800 ">
+                                  {/* ...thead and tbody for detailUsulan... */}
+                                  <thead className="bg-gradient-to-r from-sky-500 to-cyan-400 dark:from-sky-700 dark:to-cyan-600">
+                                    <tr>
+                                      <th className="py-3 px-4 text-left text-xs font-semibold text-white dark:text-sky-100 uppercase tracking-wider">Nama Alat</th>
+                                      <th className="py-3 px-4 text-left text-xs font-semibold text-white dark:text-sky-100 uppercase tracking-wider">Jumlah</th>
+                                      <th className="py-3 px-4 text-left text-xs font-semibold text-white dark:text-sky-100 uppercase tracking-wider">Harga Satuan</th>
+                                      <th className="py-3 px-4 text-left text-xs font-semibold text-white dark:text-sky-100 uppercase tracking-wider">Harga Total</th>
+                                      <th className="py-3 px-4 text-right text-xs font-semibold text-white dark:text-sky-100 uppercase tracking-wider">Aksi</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-sky-100 dark:divide-sky-800">
+                                    {detailUsulan.length > 0 ? detailUsulan.map((item: DetailUsulan) => ( 
+                                      <tr key={item.id_detail_usulan} className="hover:bg-sky-50 dark:hover:bg-sky-900/50 transition-colors duration-150">
+                                        <td className="py-3 px-4 text-sm text-slate-700 dark:text-slate-300">
+                                          {item.nama_alat}
+                                        </td>
+                                        <td className="py-3 px-4 text-sm text-slate-700 dark:text-slate-300">
+                                          {isEditingItem === item.id_detail_usulan && editItemData ? (
+                                            <input
+                                              type="number"
+                                              min="1"
+                                              value={editItemData.jumlah_alat}
+                                              onChange={(e) => {
+                                                const jumlahAlat = parseInt(e.target.value) || 1;
+                                                setEditItemData({
+                                                  ...editItemData,
+                                                  jumlah_alat: jumlahAlat,
+                                                  harga_total: jumlahAlat * (editItemData.harga_satuan || 0)
+                                                });
+                                              }}
+                                              className="w-20 border border-slate-300 dark:border-slate-600 px-2 py-1 rounded text-sm bg-white dark:bg-slate-700 focus:ring-sky-500 focus:border-sky-500"
+                                            />
+                                          ) : (
+                                            item.jumlah_alat
+                                          )}
+                                        </td>
+                                        <td className="py-3 px-4 text-sm text-slate-700 dark:text-slate-300">
+                                          {isEditingItem === item.id_detail_usulan && editItemData ? (
+                                            <input
+                                              type="number"
+                                              min="0"
+                                              value={editItemData.harga_satuan}
+                                              onChange={(e) => {
+                                                const hargaSatuan = parseInt(e.target.value) || 0;
+                                                setEditItemData({
+                                                  ...editItemData,
+                                                  harga_satuan: hargaSatuan,
+                                                  harga_total: (editItemData.jumlah_alat) * hargaSatuan
+                                                });
+                                              }}
+                                              className="w-32 border border-slate-300 dark:border-slate-600 px-2 py-1 rounded text-sm bg-white dark:bg-slate-700 focus:ring-sky-500 focus:border-sky-500"
+                                            />
+                                          ) : (
+                                            new Intl.NumberFormat('id-ID', {
+                                              style: 'currency',
+                                              currency: 'IDR',
+                                              minimumFractionDigits: 0
+                                            }).format(item.harga_satuan || 0)
+                                          )}
+                                        </td>
+                                        <td className="py-3 px-4 text-sm text-slate-700 dark:text-slate-300">
+                                          {new Intl.NumberFormat('id-ID', {
+                                            style: 'currency',
+                                            currency: 'IDR',
+                                            minimumFractionDigits: 0
+                                          }).format(
+                                            isEditingItem === item.id_detail_usulan && editItemData
+                                              ? (editItemData.harga_total || editItemData.jumlah_alat * (editItemData.harga_satuan || 0))
+                                              : (item.harga_total || item.jumlah_alat * (item.harga_satuan || 0) || 0)
+                                          )}
+                                        </td>
+                                        <td className="py-3 px-4 text-sm text-right">
+                                          {isEditingItem === item.id_detail_usulan ? (
+                                            <div className="flex justify-end space-x-2">
+                                              <button
+                                                onClick={saveEditItem}
+                                                className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 text-sm"
+                                              >
+                                                Simpan
+                                              </button>
+                                              <button
+                                                onClick={cancelEditItem}
+                                                className="text-slate-600 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 text-sm"
+                                              >
+                                                Batal
+                                              </button>
+                                            </div>
+                                          ) : (
+                                            <div className="flex justify-end space-x-2">
+                                              {!isPengajuanLocked() ? (
+                                                <>
+                                                  <button
+                                                    onClick={() => startEditItem(item)}
+                                                    className="text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300 text-sm"
+                                                  >
+                                                    Edit
+                                                  </button>
+                                                  <button
+                                                    onClick={() => handleDeleteItem(item.id_detail_usulan)}
+                                                    className="text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 text-sm"
+                                                  >
+                                                    Hapus
+                                                  </button>
+                                                </>
+                                              ) : (
+                                                <span className="text-slate-500 dark:text-slate-400 text-sm">Terkunci</span>
+                                              )
+                                             }
+                                            </div>
+                                          )}
+                                        </td>
+                                      </tr>
+                                    )) : (
+                                      <tr>
+                                        <td colSpan={5} className="py-4 px-4 text-center text-sm text-slate-500 dark:text-slate-400">
+                                          Tidak ada detail usulan untuk pengajuan ini.
+                                        </td>
+                                      </tr>
+                                    )}
+                                    <tr className="bg-slate-50 dark:bg-slate-700/50">
+                                      <td colSpan={3} className="py-3 px-4 text-right font-semibold text-slate-700 dark:text-slate-200">
+                                        Total Keseluruhan:
+                                      </td>
+                                      <td className="py-3 px-4 font-semibold text-slate-700 dark:text-slate-200">
+                                        {new Intl.NumberFormat('id-ID', {
+                                          style: 'currency',
+                                          currency: 'IDR',
+                                          minimumFractionDigits: 0
+                                        }).format(detailUsulan.reduce((total, item) => {
+                                          let itemTotal = item.harga_total || item.jumlah_alat * (item.harga_satuan || 0) || 0;
+                                          if (isEditingItem === item.id_detail_usulan && editItemData) {
+                                            itemTotal = editItemData.harga_total || 
+                                              editItemData.jumlah_alat * (editItemData.harga_satuan || 0) || 0;
+                                          }
+                                          return total + itemTotal;
+                                        }, 0))}
+                                      </td>
+                                      <td className="py-3 px-4"></td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+
+                            {/* Anggota Kelompok Section */}
+                            <div className="mb-6 p-4 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-700/50">
+                              <h3 className="font-medium mb-3 text-slate-700 dark:text-slate-200">Detail Anggota Kelompok</h3>
+                              <div className="overflow-x-auto rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
+                                <table className="min-w-full bg-white dark:bg-slate-800">
+                                  {/* ...thead and tbody for anggotaKelompok... */}
+                                  <thead className="bg-gradient-to-r from-teal-500 to-emerald-400 dark:from-teal-700 dark:to-emerald-600">
+                                    <tr>
+                                      <th className="py-3 px-4 text-left text-xs font-semibold text-white dark:text-teal-100 uppercase tracking-wider">Nama</th>
+                                      <th className="py-3 px-4 text-left text-xs font-semibold text-white dark:text-teal-100 uppercase tracking-wider">Jabatan</th>
+                                      <th className="py-3 px-4 text-left text-xs font-semibold text-white dark:text-teal-100 uppercase tracking-wider">NIK</th>
+                                      <th className="py-3 px-4 text-left text-xs font-semibold text-white dark:text-teal-100 uppercase tracking-wider">No. Kusuka</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-teal-100 dark:divide-teal-800">
+                                    {anggotaKelompok.length > 0 ? anggotaKelompok.map((anggota: AnggotaKelompok) => ( 
+                                      <tr key={anggota.id_anggota} className="hover:bg-teal-50 dark:hover:bg-teal-900/50 transition-colors duration-150">
+                                        <td className="py-3 px-4 text-sm text-slate-700 dark:text-slate-300">{anggota.nama_anggota}</td>
+                                        <td className="py-3 px-4 text-sm text-slate-700 dark:text-slate-300 capitalize">{anggota.jabatan}</td>
+                                        <td className="py-3 px-4 text-sm text-slate-700 dark:text-slate-300">{anggota.nik}</td>
+                                        <td className="py-3 px-4 text-sm text-slate-700 dark:text-slate-300">{anggota.no_kusuka}</td>
+                                      </tr>
+                                    )) : (
+                                      <tr>
+                                        <td colSpan={4} className="py-4 px-4 text-center text-sm text-slate-500 dark:text-slate-400">
+                                          Tidak ada data anggota untuk kelompok ini.
+                                        </td>
+                                      </tr>
+                                    )}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+
+                            {/* Verifikasi Dokumen Section */}
+                            <div className="mb-6 p-4 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-700/50">
+                              <h3 className="font-medium mb-3 text-slate-700 dark:text-slate-200">Verifikasi Dokumen</h3>
+                              <div className="grid grid-cols-2 gap-2 mb-4">
+                                {/* ...checkboxes for dokumenChecklist... */}
+                                  <label className={`flex items-center text-sm text-slate-700 dark:text-slate-300 ${isPengajuanLocked() ? 'cursor-not-allowed opacity-70' : ''}`}>
+                                    <input type="checkbox" checked={dokumenChecklist.proposal} onChange={() => handleChecklistChange('proposal')} className="mr-2" disabled={isPengajuanLocked()} />
+                                    <span>Proposal</span>
+                                  </label>
+                                  <label className={`flex items-center text-sm text-slate-700 dark:text-slate-300 ${isPengajuanLocked() ? 'cursor-not-allowed opacity-70' : ''}`}>
+                                    <input type="checkbox" checked={dokumenChecklist.surat_usulan} onChange={() => handleChecklistChange('surat_usulan')} className="mr-2" disabled={isPengajuanLocked()} />
+                                    <span>Surat Usulan</span>
+                                  </label>
+                                  <label className={`flex items-center text-sm text-slate-700 dark:text-slate-300 ${isPengajuanLocked() ? 'cursor-not-allowed opacity-70' : ''}`}>
+                                    <input type="checkbox" checked={dokumenChecklist.foto_ktp} onChange={() => handleChecklistChange('foto_ktp')} className="mr-2" disabled={isPengajuanLocked()} />
+                                    <span>Foto KTP</span>
+                                  </label>
+                                  <label className={`flex items-center text-sm text-slate-700 dark:text-slate-300 ${isPengajuanLocked() ? 'cursor-not-allowed opacity-70' : ''}`}>
+                                    <input type="checkbox" checked={dokumenChecklist.surat_ktm} onChange={() => handleChecklistChange('surat_ktm')} className="mr-2" disabled={isPengajuanLocked()} />
+                                    <span>Surat KTM</span>
+                                  </label>
+                                  <label className={`flex items-center text-sm text-slate-700 dark:text-slate-300 ${isPengajuanLocked() ? 'cursor-not-allowed opacity-70' : ''}`}>
+                                    <input type="checkbox" checked={dokumenChecklist.foto_rumah} onChange={() => handleChecklistChange('foto_rumah')} className="mr-2" disabled={isPengajuanLocked()} />
+                                    <span>Foto Rumah</span>
+                                  </label>
+                                  <label className={`flex items-center text-sm text-slate-700 dark:text-slate-300 ${isPengajuanLocked() ? 'cursor-not-allowed opacity-70' : ''}`}>
+                                    <input type="checkbox" checked={dokumenChecklist.foto_alat_tangkap} onChange={() => handleChecklistChange('foto_alat_tangkap')} className="mr-2" disabled={isPengajuanLocked()} />
+                                    <span>Foto Alat Tangkap</span>
+                                  </label>
+                                  <label className={`flex items-center text-sm text-slate-700 dark:text-slate-300 ${isPengajuanLocked() ? 'cursor-not-allowed opacity-70' : ''}`}>
+                                    <input type="checkbox" checked={dokumenChecklist.kartu_kusuka} onChange={() => handleChecklistChange('kartu_kusuka')} className="mr-2" disabled={isPengajuanLocked()} />
+                                    <span>Kartu Kusuka</span>
+                                  </label>
+                                  <label className={`flex items-center text-sm text-slate-700 dark:text-slate-300 ${isPengajuanLocked() ? 'cursor-not-allowed opacity-70' : ''}`}>
+                                    <input type="checkbox" checked={dokumenChecklist.foto_kapal} onChange={() => handleChecklistChange('foto_kapal')} className="mr-2" disabled={isPengajuanLocked()} />
+                                    <span>Foto Kapal</span>
+                                  </label>
+                                  <label className={`flex items-center text-sm text-slate-700 dark:text-slate-300 ${isPengajuanLocked() ? 'cursor-not-allowed opacity-70' : ''}`}>
+                                    <input type="checkbox" checked={dokumenChecklist.bpjs} onChange={() => handleChecklistChange('bpjs')} className="mr-2" disabled={isPengajuanLocked()} />
+                                    <span>BPJS (Opsional)</span>
+                                  </label>
+                                  <label className={`flex items-center text-sm text-slate-700 dark:text-slate-300 ${isPengajuanLocked() ? 'cursor-not-allowed opacity-70' : ''}`}>
+                                    <input type="checkbox" checked={dokumenChecklist.kis} onChange={() => handleChecklistChange('kis')} className="mr-2" disabled={isPengajuanLocked()} />
+                                    <span>KIS (Opsional)</span>
+                                  </label>
+                              </div>
+                            </div>
+
+                            {/* Informasi BAST Section */}
+                            <div className="mb-6 p-4 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-700/50">
+                              <h3 className="font-medium mb-3 text-slate-700 dark:text-slate-200">Informasi BAST</h3>
+                              {/* ...noBastInput, bastFile input, preview BAST button... */}
+                                <div className="mb-3">
+                                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">No. BAST</label>
+                                  <input type="text" value={noBastInput} onChange={(e) => setNoBastInput(e.target.value)} placeholder="Masukkan Nomor BAST" className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-sky-500 focus:border-sky-500 transition-colors" disabled={isPengajuanLocked()} />
+                                </div>
+                                <div className="mb-3">
+                                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Upload Dokumen BAST (PDF)</label>
+                                  <input type="file" onChange={(e) => setBastFile(e.target.files ? e.target.files[0] : null)} className="w-full text-sm text-slate-500 dark:text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-sky-100 file:text-sky-700 hover:file:bg-sky-200 dark:file:bg-sky-700 dark:file:text-sky-200 dark:hover:file:bg-sky-600" accept=".pdf" disabled={isPengajuanLocked()} />
+                                </div>
+                                {selectedPengajuan.dokumen_bast && (
+                                  <button onClick={handlePreviewBastDocument} className="text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300 text-sm underline">Lihat Dokumen BAST</button>
+                                )}
+                            </div>
+
+                            {/* Status Verifikasi Section */}
+                            <div className="p-4 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-700/50">
+                              <h3 className="font-medium mb-3 text-slate-700 dark:text-slate-200">Status Verifikasi & Catatan</h3>
+                              {/* ...statusVerifikasi select, catatan textarea, saveVerification button... */}
+                                <div className="mb-3">
+                                  <select value={statusVerifikasi} onChange={(e) => setStatusVerifikasi(e.target.value)} className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-sky-500 focus:border-sky-500 transition-colors" disabled={isPengajuanLocked()}>
+                                    {statusOptions.map((option) => (<option key={option} value={option}>{option}</option>))}
+                                  </select>
+                                </div>
+                                <div className="mb-3">
+                                  <textarea value={catatan} onChange={(e) => setCatatan(e.target.value)} placeholder="Catatan verifikasi (opsional)..." className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-sky-500 focus:border-sky-500 transition-colors" rows={3} disabled={isPengajuanLocked()}></textarea>
+                                </div>
+                                <button onClick={saveVerification} className={`px-4 py-2 ${isPengajuanLocked() ? 'bg-slate-400 dark:bg-slate-600 cursor-not-allowed' : 'bg-sky-600 hover:bg-sky-700 dark:bg-sky-500 dark:hover:bg-sky-600'} text-white rounded-lg transition-colors`} disabled={isPengajuanLocked()}>
+                                  Simpan Perubahan
+                                </button>
+                                {isPengajuanLocked() && (
+                                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 flex items-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 text-slate-400 dark:text-slate-500" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" /></svg>
+                                    Status verifikasi terkunci karena sudah diverifikasi oleh Kepala Bidang
+                                  </p>
+                                )}
+                            </div>
+                            {/* End of content from original right column */}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )) : (
+                  <p className="text-center py-4 text-slate-500 dark:text-slate-400 flex-grow flex items-center justify-center">Tidak ada data pengajuan yang sesuai dengan filter.</p>
+                )}
+              </div>
+              {/* Pagination Controls */}
+              {filteredPengajuanList.length > ITEMS_PER_PAGE && (
+                <div className="mt-auto pt-4 flex justify-between items-center border-t border-slate-200 dark:border-slate-700">
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1.5 text-sm bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Sebelumnya
+                  </button>
+                  <span className="text-sm text-slate-600 dark:text-slate-400">
+                    Halaman {currentPage} dari {totalPages}
+                  </span>
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-1.5 text-sm bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Berikutnya
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+      </div>
+    </div> {/* Closing tag for the container div starting at line 728 */}
+
+      {/* Document Preview Modal */}
+      {showModal && dokumenUrl && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-slate-800 rounded-xl w-11/12 md:w-5/6 lg:w-11/12 max-h-[95vh] flex flex-col shadow-2xl">
+            <div className="flex justify-between items-center p-4 border-b border-slate-200 dark:border-slate-700">
+              <h3 className="font-semibold text-lg text-slate-800 dark:text-slate-100">Dokumen Pengajuan</h3>
+              <button
+                onClick={() => {
+                  setShowModal(false);
+                  setDokumenUrl(null);
+                }}
+                className="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="flex-1 p-4 overflow-auto">
+              <iframe
+                src={dokumenUrl}
+                className="w-full h-[80vh] border"
+                title="Document Preview"
+              ></iframe>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* BAST Document Preview Modal */}
+      {showBastModal && bastDokumenUrl && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-slate-800 rounded-xl w-full sm:w-11/12 md:w-5/6 lg:w-11/12 max-h-[95vh] flex flex-col shadow-2xl">
+            <div className="flex justify-between items-center p-4 border-b border-slate-200 dark:border-slate-700">
+              <h3 className="font-semibold text-lg text-slate-800 dark:text-slate-100">Dokumen BAST</h3>
+              <button
+                onClick={() => {
+                  setShowBastModal(false);
+                  setBastDokumenUrl(null);
+                }}
+                className="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="flex-1 p-4 overflow-auto">
+              <iframe
+                src={bastDokumenUrl}
+                className="w-full h-[80vh] border"
+                title="BAST Document Preview"
+              ></iframe>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
