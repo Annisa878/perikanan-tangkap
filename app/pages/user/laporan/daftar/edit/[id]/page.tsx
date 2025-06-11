@@ -357,13 +357,23 @@ export default function EditLaporanPage() {
         <div className="min-h-screen bg-gradient-to-br from-sky-100 via-cyan-100 to-teal-100 dark:from-slate-900 dark:via-sky-800 dark:to-teal-800 py-8 px-4">
             <div className="container mx-auto max-w-3xl">
                 <div className="bg-white dark:bg-slate-800 p-6 md:p-8 rounded-xl shadow-2xl">
-                    <h1 className="text-2xl md:text-3xl font-bold text-center mb-8 text-slate-700 dark:text-slate-100">
+                    <button
+                        type="button"
+                        onClick={() => router.back()}
+                        className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-sky-50 hover:bg-sky-100 dark:bg-sky-800 dark:hover:bg-sky-700 text-sky-700 dark:text-sky-200 border border-sky-300 dark:border-sky-600 transition-colors shadow-sm hover:shadow mb-6"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+                        </svg>
+                        Kembali
+                    </button>
+                    <h1 className="text-2xl md:text-3xl font-bold text-center mb-8 text-sky-700 dark:text-sky-200">
                         Edit Laporan Monitoring
                     </h1>
                     <form onSubmit={handleSubmit} className="space-y-6">
                         {/* Informasi Pelapor - Ensure fieldset is lowercase */}
-                        <fieldset className="border border-slate-300 dark:border-slate-600 p-4 rounded-lg"> 
-                            <legend className="text-lg font-semibold px-2 text-slate-600 dark:text-slate-300">Informasi Pelapor</legend>
+                        <fieldset className="border border-sky-300 dark:border-sky-600 p-4 rounded-lg"> 
+                            <legend className="text-lg font-semibold px-2 text-sky-600 dark:text-sky-300">Informasi Pelapor</legend>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
                                 <div>
                                     <label htmlFor="nama_kub" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nama KUB</label>
@@ -383,8 +393,8 @@ export default function EditLaporanPage() {
                         </fieldset>
 
                         {/* Detail Laporan - Ensure fieldset is lowercase */}
-                        <fieldset className="border border-slate-300 dark:border-slate-600 p-4 rounded-lg"> 
-                            <legend className="text-lg font-semibold px-2 text-slate-600 dark:text-slate-300">Detail Laporan</legend>
+                        <fieldset className="border border-sky-300 dark:border-sky-600 p-4 rounded-lg"> 
+                            <legend className="text-lg font-semibold px-2 text-sky-600 dark:text-sky-300">Detail Laporan</legend>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
                                 {/* All other form fields from create page */}
                                 <div>
@@ -417,8 +427,8 @@ export default function EditLaporanPage() {
                         </fieldset>
 
                         {/* Produksi Ikan - Ensure fieldset is lowercase */}
-                        <fieldset className="border border-slate-300 dark:border-slate-600 p-4 rounded-lg"> 
-                            <legend className="text-lg font-semibold px-2 text-slate-600 dark:text-slate-300">Produksi Ikan</legend>
+                        <fieldset className="border border-sky-300 dark:border-sky-600 p-4 rounded-lg"> 
+                            <legend className="text-lg font-semibold px-2 text-sky-600 dark:text-sky-300">Produksi Ikan</legend>
                             {formData.produksi.map((item, index) => (
                                 <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end border-b border-slate-200 dark:border-slate-700 py-4 last:border-b-0">
                                     <div className="md:col-span-2">
@@ -434,18 +444,18 @@ export default function EditLaporanPage() {
                                         <input type="text" id={`harga_per_kg_${index}`} name="harga_per_kg" value={formatRibuan(item.harga_per_kg)} onChange={e => handleProduksiChange(index, e)} required className="w-full p-2.5 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-sky-500 focus:border-sky-500" />
                                     </div>
                                     {formData.produksi.length > 1 && (
-                                        <button type="button" onClick={() => hapusProduksi(index)} className="md:col-start-4 text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 font-medium py-2.5 px-3 rounded-md border border-rose-500 dark:border-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 transition-colors text-sm self-end">
+                                        <button type="button" onClick={() => hapusProduksi(index)} className="md:col-start-4 text-slate-600 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 font-medium py-2.5 px-3 rounded-md border border-slate-500 dark:border-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900/30 transition-colors text-sm self-end">
                                             Hapus Ikan
                                         </button>
                                     )}
                                 </div>
                             ))}
-                            <button type="button" onClick={tambahProduksi} className="mt-4 text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300 font-medium py-2 px-4 rounded-md border border-sky-500 dark:border-sky-400 hover:bg-sky-50 dark:hover:bg-sky-900/30 transition-colors">
+                            <button type="button" onClick={tambahProduksi} className="mt-4 text-teal-600 dark:text-teal-400 hover:text-teal-700 dark:hover:text-teal-300 font-medium py-2 px-4 rounded-md border border-teal-500 dark:border-teal-400 hover:bg-teal-50 dark:hover:bg-teal-900/30 transition-colors">
                                 + Tambah Jenis Ikan
                             </button>
                         </fieldset>
 
-                        <button type="submit" disabled={isLoading} className="w-full bg-gradient-to-r from-sky-500 to-cyan-500 hover:from-sky-600 hover:to-cyan-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 ease-in-out disabled:opacity-70 disabled:cursor-not-allowed">
+                        <button type="submit" disabled={isLoading} className="w-full bg-gradient-to-r from-sky-600 via-cyan-500 to-teal-500 hover:from-sky-700 hover:via-cyan-600 hover:to-teal-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 ease-in-out disabled:opacity-70 disabled:cursor-not-allowed">
                             {isLoading ? "Menyimpan..." : "Simpan Perubahan"}
                         </button>
                     </form>

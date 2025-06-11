@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
+import { Ship } from "lucide-react"; // Import Ship icon
 import { useRouter } from "next/navigation";
 
 // Define types for form data
@@ -490,383 +491,390 @@ export default function PengajuanForm() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-sky-50 via-cyan-50 to-teal-50 dark:from-slate-900 dark:via-sky-900 dark:to-teal-900 p-4 md:p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        {/* Header - Adjusted for left alignment and smaller size */}
-        <div className="mb-8 md:mb-10">
-          <h1 className="text-2xl md:text-3xl font-bold text-slate-800 dark:text-slate-100">
+    <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-100 to-cyan-200 dark:from-blue-900 dark:to-cyan-950 text-slate-700 dark:text-slate-200">
+      <header className="bg-white/70 dark:bg-sky-950/70 backdrop-blur-md py-4 shadow-md sticky top-0 z-40 border-b border-sky-300/70 dark:border-sky-800/70">
+        <div className="container mx-auto px-4 md:px-6">
+          <div className="text-xl md:text-2xl font-semibold flex items-center text-sky-700 dark:text-sky-300">
+            <Ship className="mr-2.5 h-6 w-6 text-cyan-600 dark:text-cyan-400" />
             Form Pengajuan Bantuan
-          </h1>
+          </div>
         </div>
+      </header>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Alert Messages */}
-          {formError && (
-            <div className="p-4 text-sm text-red-700 bg-red-100 border border-red-300 rounded-lg dark:bg-red-900/30 dark:text-red-300 dark:border-red-700">
-              {formError}
-            </div>
-          )}
-          {successMessage && (
-            <div className="p-4 text-sm text-emerald-700 bg-emerald-100 border border-emerald-300 rounded-lg dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-700">
-              {successMessage}
-            </div>
-          )}
+      <main className="container mx-auto py-6 md:py-8 px-4 md:px-6 flex-1">
+        <div className="max-w-7xl mx-auto"> {/* Container to constrain form width if needed, adjust max-w as per design */}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Alert Messages */}
+            {formError && (
+              <div className="p-4 text-sm text-red-700 bg-red-100 border border-red-300 rounded-lg dark:bg-red-900/30 dark:text-red-300 dark:border-red-700">
+                {formError}
+              </div>
+            )}
+            {successMessage && (
+              <div className="p-4 text-sm text-emerald-700 bg-emerald-100 border border-emerald-300 rounded-lg dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-700">
+                {successMessage}
+              </div>
+            )}
 
-          {/* Main Grid Layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            
-            {/* Left Column */}
-            <div className="space-y-6">
+            {/* Main Grid Layout */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               
-              {/* Informasi KUB */}
-              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-6">
-                <div className="flex items-center mb-4">
-                  <div className="w-2 h-6 bg-gradient-to-b from-sky-500 to-cyan-400 rounded-full mr-3"></div>
-                  <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200">Informasi KUB</h2>
-                </div>
+              {/* Left Column */}
+              <div className="space-y-6">
                 
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                      Nama KUB
-                    </label>
-                    <input
-                      type="text"
-                      name="nama_kub"
-                      value={formData.nama_kub}
-                      onChange={handleInputChange}
-                      placeholder="Contoh: KUB Nelayan Sejahtera"
-                      className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 transition-all"
-                      required
-                    />
+                {/* Informasi KUB */}
+                <div className="bg-blue-50 dark:bg-slate-800 rounded-xl shadow-lg border border-sky-200 dark:border-sky-700 p-6">
+                  <div className="flex items-center mb-4">
+                    <div className="w-2 h-6 bg-gradient-to-b from-sky-500 to-cyan-400 rounded-full mr-3"></div>
+                    <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200">Informasi KUB</h2>
                   </div>
                   
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                      Alamat KUB
-                    </label>
-                    <textarea
-                      name="alamat_kub"
-                      value={formData.alamat_kub}
-                      onChange={handleInputChange}
-                      placeholder="Contoh: Jl. Bahari No. 10, Desa Pesisir"
-                      rows={3}
-                      className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 transition-all resize-none"
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                      Kabupaten/Kota
-                    </label>
-                    <input
-                      type="text"
-                      name="kabupaten_kota"
-                      value={formData.kabupaten_kota}
-                      onChange={handleInputChange}
-                      placeholder="Contoh: Kab. Banyuasin"
-                      className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 transition-all"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                      Tanggal Pengajuan
-                    </label>
-                    <input
-                      type="date"
-                      name="tanggal_pengajuan"
-                      value={formData.tanggal_pengajuan}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 transition-all"
-                      required
-                    />
-                  </div>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        Nama KUB
+                      </label>
+                      <input
+                        type="text"
+                        name="nama_kub"
+                        value={formData.nama_kub}
+                        onChange={handleInputChange}
+                        placeholder="Contoh: KUB Nelayan Sejahtera"
+                        className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 transition-all"
+                        required
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        Alamat KUB
+                      </label>
+                      <textarea
+                        name="alamat_kub"
+                        value={formData.alamat_kub}
+                        onChange={handleInputChange}
+                        placeholder="Contoh: Jl. Bahari No. 10, Desa Pesisir"
+                        rows={3}
+                        className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 transition-all resize-none"
+                        required
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        Kabupaten/Kota
+                      </label>
+                      <input
+                        type="text"
+                        name="kabupaten_kota"
+                        value={formData.kabupaten_kota}
+                        onChange={handleInputChange}
+                        placeholder="Contoh: Kab. Banyuasin"
+                        className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 transition-all"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        Tanggal Pengajuan
+                      </label>
+                      <input
+                        type="date"
+                        name="tanggal_pengajuan"
+                        value={formData.tanggal_pengajuan}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 transition-all"
+                        required
+                      />
+                    </div>
 
-                  <div className="p-3 bg-sky-50 dark:bg-sky-900/30 border border-sky-200 dark:border-sky-700 rounded-lg">
-                    <p className="text-sm text-sky-700 dark:text-sky-300">
-                      Penting: Pilih wilayah penangkapan untuk menampilkan opsi alat tangkap yang sesuai.
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
-                      Wilayah Penangkapan
-                    </label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <label className="flex items-center p-3 border border-slate-200 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer">
-                        <input // Radio button styling
-                          type="radio"
-                          name="wilayah_penangkapan"
-                          value="perairan_umum_daratan"
-                          checked={formData.wilayah_penangkapan === 'perairan_umum_daratan'}
-                          onChange={handleRadioChange}
-                          className="text-blue-600 focus:ring-blue-500"
-                          required
-                        />
-                        <span className="ml-3 text-sm text-slate-700 dark:text-slate-300">Perairan Umum Daratan</span>
+                    <div className="p-3 bg-sky-50 dark:bg-sky-900/30 border border-sky-200 dark:border-sky-700 rounded-lg">
+                      <p className="text-sm text-sky-700 dark:text-sky-300">
+                        Penting: Pilih wilayah penangkapan untuk menampilkan opsi alat tangkap yang sesuai.
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
+                        Wilayah Penangkapan
                       </label>
-                      <label className="flex items-center p-3 border border-slate-200 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer">
-                        <input // Radio button styling
-                          type="radio"
-                          name="wilayah_penangkapan"
-                          value="laut"
-                          checked={formData.wilayah_penangkapan === 'laut'}
-                          onChange={handleRadioChange}
-                          className="text-blue-600 focus:ring-blue-500"
-                          required
-                        />
-                        <span className="ml-3 text-sm text-slate-700 dark:text-slate-300">Laut</span>
-                      </label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <label className="flex items-center p-3 border border-slate-200 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer">
+                          <input // Radio button styling
+                            type="radio"
+                            name="wilayah_penangkapan"
+                            value="perairan_umum_daratan"
+                            checked={formData.wilayah_penangkapan === 'perairan_umum_daratan'}
+                            onChange={handleRadioChange}
+                            className="text-blue-600 focus:ring-blue-500"
+                            required
+                          />
+                          <span className="ml-3 text-sm text-slate-700 dark:text-slate-300">Perairan Umum Daratan</span>
+                        </label>
+                        <label className="flex items-center p-3 border border-slate-200 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer">
+                          <input // Radio button styling
+                            type="radio"
+                            name="wilayah_penangkapan"
+                            value="laut"
+                            checked={formData.wilayah_penangkapan === 'laut'}
+                            onChange={handleRadioChange}
+                            className="text-blue-600 focus:ring-blue-500"
+                            required
+                          />
+                          <span className="ml-3 text-sm text-slate-700 dark:text-slate-300">Laut</span>
+                        </label>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Usulan Alat Tangkap */}
-              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-6">
-                <div className="flex items-center mb-4">
-                  <div className="w-2 h-6 bg-gradient-to-b from-teal-500 to-emerald-400 rounded-full mr-3"></div>
-                  <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200">Usulan Alat Tangkap</h2>
-                </div>
-                
-                {formData.wilayah_penangkapan ? (
-                  <div className="space-y-4">
-                    <div className="bg-slate-50 dark:bg-slate-700/30 rounded-lg p-4">
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-                        <div className="sm:col-span-2">
-                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                            Nama Alat
-                          </label>
-                          <select
-                            name="nama_alat"
-                            value={formData.nama_alat}
-                            onChange={handleInputChange}
-                            className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
-                          >
-                            <option value="">Pilih Alat Tangkap</option>
-                            {alatTangkapList.map((alat, i) => (
-                              <option key={i} value={alat}>{alat}</option>
-                            ))}
-                          </select>
-                          {formData.nama_alat === "Lainnya" && (
-                            <input
-                              type="text"
-                              name="nama_alat_lainnya"
-                              value={formData.nama_alat_lainnya}
+                {/* Usulan Alat Tangkap */}
+                <div className="bg-blue-50 dark:bg-slate-800 rounded-xl shadow-lg border border-sky-200 dark:border-sky-700 p-6">
+                  <div className="flex items-center mb-4">
+                    <div className="w-2 h-6 bg-gradient-to-b from-teal-500 to-emerald-400 rounded-full mr-3"></div>
+                    <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200">Usulan Alat Tangkap</h2>
+                  </div>
+                  
+                  {formData.wilayah_penangkapan ? (
+                    <div className="space-y-4"> {/* Container for input section and list */}
+                      <div className="bg-sky-100 dark:bg-slate-700/50 rounded-lg p-4"> {/* Input section background */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                          <div className="sm:col-span-2">
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                              Nama Alat
+                            </label>
+                            <select
+                              name="nama_alat"
+                              value={formData.nama_alat}
                               onChange={handleInputChange}
-                              placeholder="Nama alat tangkap lainnya"
-                              className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 mt-2"
-                              required
+                              className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                            >
+                              <option value="">Pilih Alat Tangkap</option>
+                              {alatTangkapList.map((alat, i) => (
+                                <option key={i} value={alat}>{alat}</option>
+                              ))}
+                            </select>
+                            {formData.nama_alat === "Lainnya" && (
+                              <input
+                                type="text"
+                                name="nama_alat_lainnya"
+                                value={formData.nama_alat_lainnya}
+                                onChange={handleInputChange}
+                                placeholder="Nama alat tangkap lainnya"
+                                className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 mt-2"
+                                required
+                              />
+                            )}
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                              Jumlah
+                            </label>
+                            <input
+                              type="number"
+                              name="jumlah_alat"
+                              value={formData.jumlah_alat}
+                              onChange={handleInputChange}
+                              min="1"
+                              className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
                             />
+                          </div>
+                        </div>
+                        
+                        <div className="flex justify-end space-x-2">
+                          {editingUsulanIndex !== null && (
+                            <button
+                              type="button"
+                              onClick={handleCancelEditUsulan}
+                              className="px-4 py-2 text-sm text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 transition-colors rounded-md"
+                            >
+                              Batal
+                            </button>
                           )}
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                            Jumlah
-                          </label>
-                          <input
-                            type="number"
-                            name="jumlah_alat"
-                            value={formData.jumlah_alat}
-                            onChange={handleInputChange}
-                            min="1"
-                            className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
-                          />
-                        </div>
-                      </div>
-                      
-                      <div className="flex justify-end space-x-2">
-                        {editingUsulanIndex !== null && (
                           <button
                             type="button"
-                            onClick={handleCancelEditUsulan}
-                            className="px-4 py-2 text-sm text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 transition-colors rounded-md"
+                            onClick={addUsulanItem}
+                            className="px-6 py-2 bg-gradient-to-r from-teal-500 to-emerald-500 text-white font-medium rounded-lg hover:from-teal-600 hover:to-emerald-600 transition-all shadow-sm hover:shadow-md"
                           >
-                            Batal
+                            {editingUsulanIndex !== null ? 'Update' : 'Tambah'}
                           </button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={addUsulanItem}
-                          className="px-6 py-2 bg-gradient-to-r from-teal-500 to-emerald-500 text-white font-medium rounded-lg hover:from-teal-600 hover:to-emerald-600 transition-all shadow-sm hover:shadow-md"
-                        >
-                          {editingUsulanIndex !== null ? 'Update' : 'Tambah'}
-                        </button>
+                        </div>
                       </div>
-                    </div>
 
-                    {usulanItems.length > 0 && (
-                      <div className="space-y-2">
-                        {usulanItems.map((item, index) => (
-                          <div key={index} className="flex items-center justify-between p-3 bg-white dark:bg-slate-700/60 border border-slate-200 dark:border-slate-600 rounded-lg">
-                            <div>
-                              <span className="font-medium text-slate-800 dark:text-slate-200">{item.nama_alat}</span>
-                              <span className="text-slate-500 dark:text-slate-400 ml-2">({item.jumlah_alat} unit)</span>
+                      {usulanItems.length > 0 && (
+                        <div className="space-y-2">
+                          {usulanItems.map((item, index) => (
+                            <div key={index} className="flex items-center justify-between p-3 bg-white dark:bg-slate-700 border border-sky-100 dark:border-sky-600 rounded-lg">
+                              <div>
+                                <span className="font-medium text-slate-800 dark:text-slate-200">{item.nama_alat}</span>
+                                <span className="text-slate-500 dark:text-slate-400 ml-2">({item.jumlah_alat} unit)</span>
+                              </div>
+                              <div className="flex space-x-2">
+                                <button
+                                  type="button"
+                                  onClick={() => handleEditUsulanItem(index)}
+                                  className="text-sky-600 hover:text-sky-800 dark:text-sky-400 dark:hover:text-sky-300 text-sm"
+                                  disabled={editingUsulanIndex === index}
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => removeUsulanItem(index)}
+                                  className="text-rose-500 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 text-sm"
+                                >
+                                  Hapus
+                                </button>
+                              </div>
                             </div>
-                            <div className="flex space-x-2">
-                              <button
-                                type="button"
-                                onClick={() => handleEditUsulanItem(index)}
-                                className="text-sky-600 hover:text-sky-800 dark:text-sky-400 dark:hover:text-sky-300 text-sm"
-                                disabled={editingUsulanIndex === index}
-                              >
-                                Edit
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => removeUsulanItem(index)}
-                                className="text-rose-500 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 text-sm"
-                              >
-                                Hapus
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                        
-                      </div>
-                    )}
+                          ))}
+                          
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="p-3 bg-sky-50 dark:bg-sky-900/30 border border-sky-200 dark:border-sky-700 rounded-lg">
+                      <p className="text-sm text-sky-700 dark:text-sky-300">
+                        Pilih wilayah penangkapan terlebih dahulu untuk menampilkan opsi alat tangkap.
+                      </p>
+                    </div>
+                  )}
+                </div> {/* Closing Usulan Alat Tangkap */}
+              </div> {/* Closing Left Column */}
+
+              {/* Right Column */}
+              <div className="space-y-6">
+                {/* Dokumen Pengajuan */}
+                <div className="bg-blue-50 dark:bg-slate-800 rounded-xl shadow-lg border border-sky-200 dark:border-sky-700 p-6">
+                  <div className="flex items-center mb-4">
+                    <div className="w-2 h-6 bg-gradient-to-b from-indigo-500 to-purple-500 rounded-full mr-3"></div>
+                    <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200">Dokumen Pengajuan</h2>
                   </div>
-                ) : (
-                  <div className="p-3 bg-sky-50 dark:bg-sky-900/30 border border-sky-200 dark:border-sky-700 rounded-lg">
-                    <p className="text-sm text-sky-700 dark:text-sky-300">
-                      Pilih wilayah penangkapan terlebih dahulu untuk menampilkan opsi alat tangkap.
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      Upload Dokumen (PDF)
+                    </label>
+                    <input
+                      type="file"
+                      name="dokumen_pengajuan"
+                      onChange={handleFileChange}
+                      className="w-full text-sm text-slate-500 dark:text-slate-400
+                        file:mr-4 file:py-2 file:px-4
+                        file:rounded-lg file:border-0
+                        file:text-sm file:font-semibold
+                        file:bg-sky-100 file:text-sky-700
+                        hover:file:bg-sky-200
+                        dark:file:bg-sky-700 dark:file:text-sky-200 dark:hover:file:bg-sky-600"
+                      accept=".pdf"
+                      required
+                    />
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Pastikan file PDF Anda berisi dokumen-dokumen berikut:
+                      Proposal, Surat Usulan, KTP, Kartu KUSUKA, Surat Keterangan Tidak Mampu (SKTM),
+                       Foto Alat Tangkap, Foto Rumah, dan Foto Kapal,  BPJS (opsional), KIS (opsional).
                     </p>
                   </div>
-                )}
-              </div> {/* Closing Usulan Alat Tangkap */}
-            </div> {/* Closing Left Column */}
+                </div>
 
-            {/* Right Column */}
-            <div className="space-y-6">
-              {/* Dokumen Pengajuan */}
-              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-6">
-                <div className="flex items-center mb-4">
-                  <div className="w-2 h-6 bg-gradient-to-b from-indigo-500 to-purple-500 rounded-full mr-3"></div>
-                  <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200">Dokumen Pengajuan</h2>
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                    Upload Dokumen (PDF)
-                  </label>
-                  <input
-                    type="file"
-                    name="dokumen_pengajuan"
-                    onChange={handleFileChange}
-                    className="w-full text-sm text-slate-500 dark:text-slate-400
-                      file:mr-4 file:py-2 file:px-4
-                      file:rounded-lg file:border-0
-                      file:text-sm file:font-semibold
-                      file:bg-sky-100 file:text-sky-700
-                      hover:file:bg-sky-200
-                      dark:file:bg-sky-700 dark:file:text-sky-200 dark:hover:file:bg-sky-600"
-                    accept=".pdf"
-                    required
-                  />
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Pastikan file PDF Anda berisi dokumen-dokumen berikut:
-                    Proposal, Surat Usulan, KTP, Kartu KUSUKA, Surat Keterangan Tidak Mampu (SKTM),
-                     Foto Alat Tangkap, Foto Rumah, dan Foto Kapal,  BPJS (opsional), KIS (opsional).
-                  </p>
-                </div>
-              </div>
-
-              {/* Anggota Kelompok */}
-              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-6">
-                <div className="flex items-center mb-4">
-                  <div className="w-2 h-6 bg-gradient-to-b from-amber-500 to-orange-500 rounded-full mr-3"></div>
-                  <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200">Anggota Kelompok</h2>
-                </div>
-                
-                <div className="bg-slate-50 dark:bg-slate-700/30 rounded-lg p-4 mb-4 space-y-3">
-                  <h3 className="text-md font-medium text-slate-700 dark:text-slate-300 mb-2">Tambah Anggota Baru</h3>
-                  <input type="text" name="nama_anggota" value={newAnggota.nama_anggota} onChange={handleNewAnggotaChange} placeholder="Nama Lengkap Anggota" className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 transition-all" />
-                  <select name="jabatan" value={newAnggota.jabatan} onChange={handleNewAnggotaChange} className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 transition-all">
-                    <option value="" disabled>Pilih Jabatan...</option>
-                    <option value="anggota">Anggota</option>
-                    <option value="ketua">Ketua</option>
-                    <option value="sekretaris">Sekretaris</option>
-                    <option value="bendahara">Bendahara</option>
-                  </select>
+                {/* Anggota Kelompok */}
+                <div className="bg-blue-50 dark:bg-slate-800 rounded-xl shadow-lg border border-sky-200 dark:border-sky-700 p-6">
+                  <div className="flex items-center mb-4">
+                    <div className="w-2 h-6 bg-gradient-to-b from-amber-500 to-orange-500 rounded-full mr-3"></div>
+                    <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200">Anggota Kelompok</h2>
+                  </div>
                   
-                  <input type="text" name="nik" value={newAnggota.nik} onChange={handleNewAnggotaChange} placeholder="Nomor Induk Kependudukan (NIK)" className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 transition-all" />
-                  <input type="text" name="no_kusuka" value={newAnggota.no_kusuka} onChange={handleNewAnggotaChange} placeholder="Nomor Kartu KUSUKA" className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 transition-all" />
-                  <div className="flex justify-end">
-                    <button type="button" onClick={addAnggota} className="px-6 py-2 bg-gradient-to-r from-sky-500 to-cyan-500 text-white font-medium rounded-lg hover:from-sky-600 hover:to-cyan-600 transition-all shadow-sm hover:shadow-md">Tambah Anggota</button>
+                  <div className="bg-sky-100 dark:bg-slate-700/50 rounded-lg p-4 mb-4 space-y-3">
+                    <h3 className="text-md font-medium text-slate-700 dark:text-slate-300 mb-2">Tambah Anggota Baru</h3>
+                    <input type="text" name="nama_anggota" value={newAnggota.nama_anggota} onChange={handleNewAnggotaChange} placeholder="Nama Lengkap Anggota" className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 transition-all" />
+                    <select name="jabatan" value={newAnggota.jabatan} onChange={handleNewAnggotaChange} className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 transition-all">
+                      <option value="" disabled>Pilih Jabatan...</option>
+                      <option value="anggota">Anggota</option>
+                      <option value="ketua">Ketua</option>
+                      <option value="wakil_ketua">Wakil Ketua</option>
+                      <option value="sekretaris">Sekretaris</option>
+                      <option value="bendahara">Bendahara</option>
+                    </select>
+                    
+                    <input type="text" name="nik" value={newAnggota.nik} onChange={handleNewAnggotaChange} placeholder="Nomor Induk Kependudukan (NIK)" className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 transition-all" />
+                    <input type="text" name="no_kusuka" value={newAnggota.no_kusuka} onChange={handleNewAnggotaChange} placeholder="Nomor Kartu KUSUKA" className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 transition-all" />
+                    <div className="flex justify-end">
+                      <button type="button" onClick={addAnggota} className="px-6 py-2 bg-gradient-to-r from-sky-500 to-cyan-500 text-white font-medium rounded-lg hover:from-sky-600 hover:to-cyan-600 transition-all shadow-sm hover:shadow-md">Tambah Anggota</button>
+                    </div>
                   </div>
+
+                  {anggotaList.length > 0 && (
+                    <div className="space-y-3 mt-6">
+                      <h3 className="text-md font-medium text-slate-700 dark:text-slate-300 mb-2">Daftar Anggota</h3>
+                      {anggotaList.map((anggota, index) => (
+                        <div key={index} className="p-4 bg-white dark:bg-slate-700 border border-sky-100 dark:border-sky-600 rounded-lg shadow-sm">
+                          {editingIndex === index ? (
+                            <div className="space-y-3">
+                              <input type="text" name="nama_anggota" value={editFormData.nama_anggota} onChange={handleEditFormChange} placeholder="Nama Anggota" className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 transition-all" />
+                              <select name="jabatan" value={editFormData.jabatan} onChange={handleEditFormChange} className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 transition-all" required>
+                                <option value="" disabled>Pilih Jabatan...</option>
+                                <option value="anggota">Anggota</option>
+                                <option value="ketua">Ketua</option>
+                                
+                                <option value="sekretaris">Sekretaris</option>
+                                <option value="bendahara">Bendahara</option>
+                              </select>
+                              <input type="text" name="nik" value={editFormData.nik} onChange={handleEditFormChange} placeholder="NIK" className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 transition-all" />
+                              <input type="text" name="no_kusuka" value={editFormData.no_kusuka} onChange={handleEditFormChange} placeholder="No. KUSUKA" className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 transition-all" />
+                              <div className="flex space-x-2 justify-end pt-2">
+                                <button type="button" onClick={saveEditAnggota} className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-md text-sm font-medium transition-colors">Simpan</button>
+                                <button type="button" onClick={cancelEdit} className="px-4 py-2 bg-slate-400 hover:bg-slate-500 text-white rounded-md text-sm font-medium transition-colors">Batal</button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <p className="font-semibold text-slate-800 dark:text-slate-100">{anggota.nama_anggota} 
+                                  <span className="ml-2 text-xs capitalize px-2 py-0.5 rounded-full bg-sky-100 text-sky-700 dark:bg-sky-700 dark:text-sky-200">{anggota.jabatan}</span>
+                                </p> {/* Badge for jabatan */}
+                                <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">NIK: {anggota.nik}</p>
+                                <p className="text-sm text-slate-600 dark:text-slate-300">No. KUSUKA: {anggota.no_kusuka}</p>
+                              </div>
+                              <div className="flex space-x-3 mt-1 flex-shrink-0">
+                                <button 
+                                  type="button" 
+                                  onClick={() => handleEditAnggota(index)} 
+                                  className="text-sky-600 hover:text-sky-800 dark:text-sky-400 dark:hover:text-sky-300 text-sm"
+                                  disabled={editingIndex === index}
+                                >
+                                  Edit
+                                </button>
+                                <button 
+                                  type="button" 
+                                  onClick={() => removeAnggota(index)} 
+                                  className="text-rose-500 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 text-sm"
+                                >
+                                  Hapus
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-
-                {anggotaList.length > 0 && (
-                  <div className="space-y-3 mt-6">
-                    <h3 className="text-md font-medium text-slate-700 dark:text-slate-300 mb-2">Daftar Anggota</h3>
-                    {anggotaList.map((anggota, index) => (
-                      <div key={index} className="p-4 bg-white dark:bg-slate-700/60 border border-slate-200 dark:border-slate-600 rounded-lg shadow-sm">
-                        {editingIndex === index ? (
-                          <div className="space-y-3">
-                            <input type="text" name="nama_anggota" value={editFormData.nama_anggota} onChange={handleEditFormChange} placeholder="Nama Anggota" className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 transition-all" />
-                            <select name="jabatan" value={editFormData.jabatan} onChange={handleEditFormChange} className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 transition-all" required>
-                              <option value="" disabled>Pilih Jabatan...</option>
-                              <option value="anggota">Anggota</option>
-                              <option value="ketua">Ketua</option>
-                              <option value="sekretaris">Sekretaris</option>
-                              <option value="bendahara">Bendahara</option>
-                            </select>
-                            <input type="text" name="nik" value={editFormData.nik} onChange={handleEditFormChange} placeholder="NIK" className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 transition-all" />
-                            <input type="text" name="no_kusuka" value={editFormData.no_kusuka} onChange={handleEditFormChange} placeholder="No. KUSUKA" className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 transition-all" />
-                            <div className="flex space-x-2 justify-end pt-2">
-                              <button type="button" onClick={saveEditAnggota} className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-md text-sm font-medium transition-colors">Simpan</button>
-                              <button type="button" onClick={cancelEdit} className="px-4 py-2 bg-slate-400 hover:bg-slate-500 text-white rounded-md text-sm font-medium transition-colors">Batal</button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <p className="font-semibold text-slate-800 dark:text-slate-100">{anggota.nama_anggota} 
-                                <span className="ml-2 text-xs capitalize px-2 py-0.5 rounded-full bg-sky-100 text-sky-700 dark:bg-sky-700 dark:text-sky-200">{anggota.jabatan}</span>
-                              </p> {/* Badge for jabatan */}
-                              <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">NIK: {anggota.nik}</p>
-                              <p className="text-sm text-slate-600 dark:text-slate-300">No. KUSUKA: {anggota.no_kusuka}</p>
-                            </div>
-                            <div className="flex space-x-3 mt-1 flex-shrink-0">
-                              <button 
-                                type="button" 
-                                onClick={() => handleEditAnggota(index)} 
-                                className="text-sky-600 hover:text-sky-800 dark:text-sky-400 dark:hover:text-sky-300 text-sm"
-                                disabled={editingIndex === index}
-                              >
-                                Edit
-                              </button>
-                              <button 
-                                type="button" 
-                                onClick={() => removeAnggota(index)} 
-                                className="text-rose-500 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 text-sm"
-                              >
-                                Hapus
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div> {/* Closing Right Column */}
-          </div> {/* Closing Main Grid Layout */}
-
-          {/* Submit Button */}
-          <div className="pt-6 border-t border-slate-200 dark:border-slate-700">
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full flex justify-center items-center px-8 py-4 bg-gradient-to-r from-sky-600 via-cyan-500 to-teal-500 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl hover:from-sky-700 hover:to-teal-600 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 dark:ring-offset-slate-800 transition-all disabled:opacity-70"
-            >
-              {isLoading ? "Memproses Pengajuan..." : "Kirim Pengajuan"}
-            </button>
-          </div>
-        </form>
-      </div>
+              </div> {/* Closing Right Column */}
+            </div>
+            {/* Submit Button */}
+            <div className="pt-6 border-t border-slate-200 dark:border-slate-700">
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full flex justify-center items-center px-8 py-4 bg-gradient-to-r from-sky-600 via-cyan-500 to-teal-500 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl hover:from-sky-700 hover:to-teal-600 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 dark:ring-offset-slate-800 transition-all disabled:opacity-70"
+              >
+                {isLoading ? "Memproses Pengajuan..." : "Kirim Pengajuan"}
+              </button>
+            </div>
+          </form>
+        </div>
+      </main>
+      <footer className="py-4 text-center text-sm text-slate-500 dark:text-slate-400 border-t border-sky-200 dark:border-sky-700">
+        
+      </footer>
     </div>
   );
 }

@@ -7,29 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
+import Image from "next/image"; // Import komponen Image
 import { useState, use } from "react"; // Import use
+import { DomisiliEnum } from "@/app/lib/enums"; // Import DomisiliEnum
 import { Eye, EyeOff } from "lucide-react"; // Import ikon mata
-
-// Enum for Domisili
-export const DomisiliEnum = [
-  "Kab. Banyuasin",
-  "Kab. Empat Lawang",
-  "Kab. Muara Enim",
-  "Kab. Musi Banyuasin",
-  "Kab. Musi Rawas",
-  "Kab. Musi Rawas Utara",
-  "Kab. Ogan Ilir",
-  "Kab. Ogan Komering Ilir",
-  "Kab. Ogan Komering Ulu",
-  "Kab. Ogan Komering Ulu Selatan",
-  "Kab. Ogan Komering Ulu Timur",
-  "Kab. Penukal Abab Lematang Ilir",
-  "Kota Lubuk Linggau",
-  "Kota Palembang",
-  "Kota Pagar Alam",
-  "Kota Prabumulih",
-  "Kota Lahat"
-] as const;
 
 export default function Signup(props: { searchParams: Promise<Message> }) { 
   const resolvedSearchParams = use(props.searchParams);
@@ -37,28 +18,36 @@ export default function Signup(props: { searchParams: Promise<Message> }) {
 
 
   return (
-    <div 
-      className="h-screen w-screen flex items-center justify-center p-4 bg-cover bg-center bg-no-repeat"
-      style={{ backgroundImage: "url('/dkp.jpg')" }}
+    <div
+      className="h-screen w-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-100 to-cyan-200 dark:from-blue-900 dark:to-cyan-950"
     >
-      <div className="bg-white p-8 rounded-xl shadow-2xl max-w-md w-full transform transition-all hover:scale-105">
-        <h1 className="text-3xl font-bold text-center bg-gradient-to-r from-sky-600 via-cyan-500 to-teal-500 bg-clip-text text-transparent mb-2">
+      <div className="bg-white p-3 rounded-xl shadow-2xl max-w-sm w-full transform transition-all hover:scale-105">
+        <div className="flex justify-center mb-2"> {/* mb-3 diubah menjadi mb-2 */}
+          <Image
+            src="/logo.jpeg" // Pastikan path logo benar dan ada di folder /public
+            alt="Logo Perusahaan"
+            width={60} // Ukuran logo dikurangi
+            height={60} // Ukuran logo dikurangi
+            className="rounded-full" // Opsional, samakan dengan sign-in
+          />
+        </div>
+        <h1 className="text-3xl font-bold text-center bg-gradient-to-r from-sky-600 via-cyan-500 to-teal-500 bg-clip-text text-transparent mb-1"> {/* mb-2 diubah menjadi mb-1 */}
           Buat Akun Baru
         </h1>
-        <p className="text-sm text-slate-600 text-center mt-1 mb-6">
+        <p className="text-sm text-slate-600 text-center mt-1 mb-2"> {/* mb-3 diubah menjadi mb-2 */}
           Already have an account? {" "}
           <Link className="text-cyan-600 hover:text-teal-600 font-medium underline" href="/sign-in">
             Sign in
           </Link>
         </p>
-        <form action={signUpAction} className="mt-6 space-y-5">
+        <form action={signUpAction} className="space-y-1"> {/* space-y-2 diubah menjadi space-y-1 */}
           <div>
-            <Label htmlFor="email" className="text-slate-700">Email</Label>
-            <Input name="email" placeholder="you@example.com" required className="mt-1 border-slate-300 focus:border-sky-500 focus:ring-sky-500" />
+            <Label htmlFor="email" className="text-xs text-slate-700">Email</Label> {/* text-sm menjadi text-xs */}
+            <Input name="email" placeholder="you@example.com" required className="mt-1 text-xs border-slate-300 focus:border-sky-500 focus:ring-sky-500" /> {/* text-sm menjadi text-xs */}
           </div>
           <div>
-            <Label htmlFor="username" className="text-slate-700">Username</Label>
-            <Input name="username" placeholder="Username Anda" required className="mt-1 border-slate-300 focus:border-sky-500 focus:ring-sky-500" />
+            <Label htmlFor="username" className="text-xs text-slate-700">Username</Label> {/* text-sm menjadi text-xs */}
+            <Input name="username" placeholder="Username Anda" required className="mt-1 text-xs border-slate-300 focus:border-sky-500 focus:ring-sky-500" /> {/* text-sm menjadi text-xs */}
           </div>
           <div>
             <Label htmlFor="domisili" className="text-slate-700">Domisili</Label>
@@ -75,7 +64,7 @@ export default function Signup(props: { searchParams: Promise<Message> }) {
               </SelectContent>
             </Select>
           </div>
-          <div>
+          <div className="text-xs"> {/* text-sm menjadi text-xs */}
             <Label htmlFor="password" className="text-slate-700">
               Password
             </Label>
@@ -96,7 +85,7 @@ export default function Signup(props: { searchParams: Promise<Message> }) {
           <SubmitButton 
             pendingText="Mendaftar..." 
             formAction={signUpAction} 
-            className="w-full bg-gradient-to-r from-sky-600 via-cyan-500 to-teal-500 hover:from-sky-700 hover:via-cyan-600 hover:to-teal-700 text-white font-semibold py-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-300"
+            className="w-full text-xs bg-gradient-to-r from-sky-500 via-cyan-400 to-teal-400 hover:from-sky-600 hover:via-cyan-500 hover:to-teal-500 text-white font-semibold py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-300"
           >
             Sign up
           </SubmitButton>

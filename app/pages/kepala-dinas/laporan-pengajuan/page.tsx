@@ -21,6 +21,7 @@ interface PengajuanData {
   catatan_verifikasi: string | null;
   catatan_verifikasi_kabid: string | null;
   created_at: string;
+  tanggal_pengajuan: string; // Ditambahkan untuk konsistensi dengan halaman admin
   nama_kub: string; // Joined from kelompok table
   kabupaten_kota?: string | null; // Added for filtering by regency/city
   alamat_kub?: string | null; // Added for KUB address
@@ -124,7 +125,7 @@ export default function LaporanPengajuanDisetujuiPage() {
         const { data, error } = await supabase
           .from('pengajuan')
           .select(`
-            id_pengajuan, kelompok_id, dokumen_pengajuan, wilayah_penangkapan, status_dokumen, status_verifikasi, status_verifikasi_kabid, catatan_verifikasi, catatan_verifikasi_kabid, created_at, total_keseluruhan,
+            id_pengajuan, kelompok_id, dokumen_pengajuan, wilayah_penangkapan, status_dokumen, status_verifikasi, status_verifikasi_kabid, catatan_verifikasi, catatan_verifikasi_kabid, created_at, tanggal_pengajuan, total_keseluruhan,
             kelompok:kelompok_id(nama_kub, alamat_kub, kabupaten_kota),
             no_bast,
             dokumen_bast
@@ -349,17 +350,26 @@ export default function LaporanPengajuanDisetujuiPage() {
   };
 
   return (
-    <div className="container mx-auto p-4 md:p-6 bg-slate-50 dark:bg-slate-900 min-h-screen">
-      <Card className="mb-6 bg-sky-500 dark:bg-sky-600 text-white shadow-lg">
-        <CardHeader>
-          <CardTitle className="text-xl md:text-2xl font-bold">Laporan Pengajuan</CardTitle>
-        </CardHeader>
-      </Card>
+    // Applied main background gradient and layout from kepala-bidang page
+    <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-100 to-cyan-200 dark:from-blue-900 dark:to-cyan-950 text-slate-700 dark:text-slate-200">
+      {/* Header - Consistent with kepala-bidang page */}
+      <header className="bg-white/70 dark:bg-sky-950/70 backdrop-blur-md py-4 shadow-md sticky top-0 z-40 border-b border-sky-300/70 dark:border-sky-800/70">
+        <div className="container mx-auto px-4 md:px-6">
+          <div className="text-xl md:text-2xl font-semibold flex items-center text-sky-700 dark:text-sky-300">
+            <Ship className="mr-2.5 h-6 w-6 text-cyan-600 dark:text-cyan-400" />
+            Laporan Pengajuan Bantuan {/* Or just the icon if preferred */}
+          </div>
+        </div>
+      </header>
 
-      <Card className="w-full bg-white dark:bg-slate-800 shadow-lg">
-        <CardHeader className="border-b border-slate-200 dark:border-slate-700">
+      {/* Main Content */}
+      <main className="container mx-auto py-6 md:py-8 px-4 md:px-6 flex-1 space-y-6 md:space-y-8">
+
+        {/* Main Card for Daftar Pengajuan - Styling consistent with dashboard content cards */}
+        <Card className="w-full bg-white dark:bg-sky-900 shadow-xl border border-sky-200 dark:border-sky-700">
+          <CardHeader className="border-b border-slate-200 dark:border-sky-700">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <CardTitle className="text-xl text-sky-700 dark:text-sky-300">Daftar Laporan Pengajuan Disetujui</CardTitle>
+              <CardTitle className="text-lg md:text-xl text-sky-700 dark:text-sky-300 shrink-0">Daftar Pengajuan Disetujui</CardTitle>
             <div className="w-full sm:w-auto sm:min-w-[250px]">
               <Select value={filterKabupatenKota} onValueChange={setFilterKabupatenKota}>
                 <SelectTrigger className="w-full bg-slate-50 dark:bg-slate-700 border-slate-300 dark:border-slate-600 focus:ring-sky-500">
@@ -391,28 +401,33 @@ export default function LaporanPengajuanDisetujuiPage() {
           ) : (
             <div className="overflow-x-auto">
               <Table>
-                <TableHeader className="bg-slate-50 dark:bg-slate-700/50">
+                <TableHeader className="bg-sky-100 dark:bg-sky-700/50">
                   <TableRow>
-                    <TableHead className="px-3 py-3 text-xs font-medium text-slate-600 dark:text-slate-300 uppercase">No</TableHead>
-                    <TableHead className="px-3 py-3 text-xs font-medium text-slate-600 dark:text-slate-300 uppercase">Nama KUB</TableHead>
-                    <TableHead className="px-3 py-3 text-xs font-medium text-slate-600 dark:text-slate-300 uppercase">Wilayah</TableHead>
-                    <TableHead className="px-3 py-3 text-xs font-medium text-slate-600 dark:text-slate-300 uppercase">Kab/Kota</TableHead>
-                    <TableHead className="px-3 py-3 text-xs font-medium text-slate-600 dark:text-slate-300 uppercase">Tgl. Pengajuan</TableHead>
-                    <TableHead className="px-3 py-3 text-xs font-medium text-slate-600 dark:text-slate-300 uppercase text-center">Status Admin</TableHead>
-                    <TableHead className="px-3 py-3 text-xs font-medium text-slate-600 dark:text-slate-300 uppercase text-center">Status Kabid</TableHead>
-                    <TableHead className="w-[50px] px-3 py-3 text-xs font-medium text-slate-600 dark:text-slate-300 uppercase text-center">Aksi</TableHead>
-                  </TableRow>
-                </TableHeader>
+                    <TableHead className="px-3 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase">No</TableHead>
+                    <TableHead className="px-3 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase">Nama KUB</TableHead>
+                    <TableHead className="px-3 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase">Wilayah</TableHead>
+                    <TableHead className="px-3 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase">Kab/Kota</TableHead>
+                    <TableHead className="px-3 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase">Tgl. Pengajuan</TableHead>
+                    <TableHead className="px-3 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase text-center">Status Admin</TableHead>
+                    <TableHead className="px-3 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase text-center">Status Kabid</TableHead>
+                    <TableHead className="w-[80px] px-3 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase text-center">Aksi</TableHead>
+                  </TableRow></TableHeader>
                 <TableBody className="divide-y divide-slate-200 dark:divide-slate-700">
-                  {filteredPengajuanList.map((item, index) => (
-                    <React.Fragment key={item.id_pengajuan}>
-                      <TableRow className={`hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors ${expandedRowId === item.id_pengajuan ? 'bg-sky-50 dark:bg-sky-700/20' : ''}`}>
+                  {filteredPengajuanList.map((item, index) => {
+                    const rowElements = [];
+
+                    // Main Row
+                    rowElements.push(
+                      <TableRow
+                        key={item.id_pengajuan}
+                        className={`hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors ${expandedRowId === item.id_pengajuan ? 'bg-sky-50 dark:bg-sky-700/20' : ''}`}
+                      >
                         <TableCell className="px-3 py-3 text-sm text-slate-700 dark:text-slate-200">{index + 1}</TableCell>
                         <TableCell className="px-3 py-3 text-sm text-slate-700 dark:text-slate-200 font-medium">{item.nama_kub}</TableCell>
                         <TableCell className="px-3 py-3 text-sm text-slate-700 dark:text-slate-200">{item.wilayah_penangkapan === 'perairan_umum_daratan' ? 'Perairan Daratan' : 'Laut'}</TableCell>
                         <TableCell className="px-3 py-3 text-sm text-slate-700 dark:text-slate-200">{item.kabupaten_kota || '-'}</TableCell>
                         <TableCell className="px-3 py-3 text-sm text-slate-700 dark:text-slate-200">
-                          {new Date(item.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          {new Date(item.tanggal_pengajuan).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
                         </TableCell>
                         <TableCell className="px-3 py-3 text-center">
                           <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${getStatusBadgeColor(item.status_verifikasi)}`}>
@@ -427,19 +442,31 @@ export default function LaporanPengajuanDisetujuiPage() {
                         <TableCell className="px-3 py-3 text-center">
                           <Button
                             variant="ghost"
-                            size="icon"
+                            size="sm" // Changed from "icon" to "sm" to allow text
                             onClick={() => toggleExpandRow(item)}
-                            className="h-8 w-8"
+                            className="h-8 px-2 text-xs" // Adjusted padding
                             disabled={isDetailLoading && expandedRowId === item.id_pengajuan}
                           >
-                            {isDetailLoading && expandedRowId === item.id_pengajuan ? <Loader2 className="h-4 w-4 animate-spin" /> : (expandedRowId === item.id_pengajuan ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />)}
+                            {isDetailLoading && expandedRowId === item.id_pengajuan ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <span className="flex items-center">
+                                Detail {expandedRowId === item.id_pengajuan ? <ChevronUp className="h-4 w-4 ml-1" /> : <ChevronDown className="h-4 w-4 ml-1" />}
+                              </span>
+                            )}
                           </Button>
                         </TableCell>
                       </TableRow>
-                      {expandedRowId === item.id_pengajuan && expandedPengajuanDetails && (
-                        <TableRow className="bg-white dark:bg-slate-800 hover:bg-white dark:hover:bg-slate-800">
-                          <TableCell colSpan={8} className="p-0">
-                            <div className="p-4 md:p-6 border-t border-sky-200 dark:border-sky-600 bg-sky-50/30 dark:bg-sky-800/10">
+                    );
+
+                    // Expanded Row (conditionally)
+                    if (expandedRowId === item.id_pengajuan && expandedPengajuanDetails) {
+                      rowElements.push(
+                        <TableRow
+                          key={`${item.id_pengajuan}-expanded`}
+                          className="bg-white dark:bg-slate-800 hover:bg-white dark:hover:bg-slate-800">
+                          <TableCell colSpan={8} className="p-0"> {/* colSpan is correct for this table */}
+                            <div className="p-4 md:p-6 border-t-2 border-sky-300 dark:border-sky-600 bg-sky-50/30 dark:bg-sky-800/10"> {/* Matched expanded row container style */}
                               {isDetailLoading ? (
                                 <div className="flex justify-center items-center py-10">
                                   <Loader2 className="h-8 w-8 animate-spin text-sky-500 dark:text-sky-400" />
@@ -448,7 +475,7 @@ export default function LaporanPengajuanDisetujuiPage() {
                               ) : expandedPengajuanDetails ? (
                                 <div className="space-y-6">
                                   {/* Informasi Umum Section */}
-                                  <div className="p-4 border border-sky-200 dark:border-sky-700 rounded-lg bg-sky-50/50 dark:bg-sky-800/20">
+                                  <div className="p-4 border border-sky-200 dark:border-sky-700 rounded-lg bg-sky-50/50 dark:bg-sky-800/20"> {/* Matched section style */}
                                     <h3 className="text-lg font-semibold mb-3 text-sky-700 dark:text-sky-300 flex items-center">
                                       <FileText size={20} className="mr-2" /> Informasi Umum Pengajuan: {expandedPengajuanDetails.pengajuanData.nama_kub}
                                     </h3>
@@ -471,7 +498,7 @@ export default function LaporanPengajuanDisetujuiPage() {
                                       <div className="flex items-center">
                                         <CalendarDays size={16} className="mr-2 text-sky-600 dark:text-sky-400" />
                                         <strong className="text-slate-600 dark:text-slate-300 w-32">Tgl. Pengajuan:</strong>
-                                        <span className="text-slate-800 dark:text-slate-100">{new Date(expandedPengajuanDetails.pengajuanData.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                                        <span className="text-slate-800 dark:text-slate-100">{new Date(expandedPengajuanDetails.pengajuanData.tanggal_pengajuan).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
                                       </div>
                                       <div className="md:col-span-2 flex items-start">
                                         <MapPin size={16} className="mr-2 mt-0.5 text-sky-600 dark:text-sky-400" />
@@ -516,7 +543,7 @@ export default function LaporanPengajuanDisetujuiPage() {
                                   </div>
 
                                   {/* Detail Usulan Alat Tangkap */}
-                                  <div>
+                                  <div className="p-4 border border-sky-200 dark:border-sky-700 rounded-lg bg-sky-50/50 dark:bg-sky-800/20"> {/* Matched section style */}
                                     <h3 className="text-lg font-semibold mb-3 text-sky-700 dark:text-sky-300 flex items-center"><Ship className="mr-2 h-5 w-5" />Detail Usulan Alat</h3>
                                     <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700">
                                       <Table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
@@ -555,7 +582,7 @@ export default function LaporanPengajuanDisetujuiPage() {
                                   </div>
 
                                   {/* Anggota Kelompok Section */}
-                                  <div>
+                                  <div className="p-4 border border-sky-200 dark:border-sky-700 rounded-lg bg-sky-50/50 dark:bg-sky-800/20"> {/* Matched section style */}
                                     <h3 className="text-lg font-semibold mb-3 text-sky-700 dark:text-sky-300 flex items-center"><Users className="mr-2 h-5 w-5" />Anggota Kelompok</h3>
                                     <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700">
                                       <Table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
@@ -586,9 +613,9 @@ export default function LaporanPengajuanDisetujuiPage() {
                                   </div>
 
                                   {/* Verifikasi Dokumen (Read-only) */}
-                                  <div>
+                                  <div className="p-4 border border-sky-200 dark:border-sky-700 rounded-lg bg-sky-50/50 dark:bg-sky-800/20"> {/* Matched section style */}
                                     <h3 className="text-lg font-semibold mb-3 text-sky-700 dark:text-sky-300 flex items-center"><ListChecks className="mr-2 h-5 w-5 text-green-500" />Kelengkapan Dokumen (Diverifikasi Admin)</h3>
-                                    <div className="p-4 border border-sky-200 dark:border-sky-700 rounded-lg bg-white dark:bg-slate-800">
+                                    <div className="p-4 border border-sky-100 dark:border-sky-700/50 rounded-lg bg-white dark:bg-slate-800/50"> {/* Inner div slightly different bg for contrast if needed, or remove for full consistency */}
                                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
                                         {renderChecklistItem("Proposal", expandedPengajuanDetails.dokumenChecklist.proposal)}
                                         {renderChecklistItem("Surat Usulan", expandedPengajuanDetails.dokumenChecklist.surat_usulan)}
@@ -606,7 +633,7 @@ export default function LaporanPengajuanDisetujuiPage() {
 
                                   {/* Catatan Verifikasi */}
                                   {(expandedPengajuanDetails.pengajuanData.catatan_verifikasi || expandedPengajuanDetails.pengajuanData.catatan_verifikasi_kabid) && (
-                                    <div>
+                                    <div className="p-4 border border-sky-200 dark:border-sky-700 rounded-lg bg-sky-50/50 dark:bg-sky-800/20"> {/* Matched section style */}
                                       <h3 className="text-lg font-semibold mb-2 text-sky-700 dark:text-sky-300 flex items-center"><MessageSquare className="mr-2 h-5 w-5" />Catatan Verifikasi</h3>
                                       <div className="space-y-3">
                                         {expandedPengajuanDetails.pengajuanData.catatan_verifikasi && (
@@ -629,9 +656,10 @@ export default function LaporanPengajuanDisetujuiPage() {
                             </div>
                           </TableCell>
                         </TableRow>
-                      )}
-                    </React.Fragment>
-                  ))}
+                      );
+                    }
+                    return rowElements; // React can render an array of elements
+                  })}
                 </TableBody>
               </Table>
             </div>
@@ -641,16 +669,16 @@ export default function LaporanPengajuanDisetujuiPage() {
 
       {/* Document Preview Modal */}
       {showModal && dokumenUrl && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[100] p-4"> {/* Increased z-index */}
-          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-6xl h-[95vh] flex flex-col">
-            <div className="flex justify-between items-center p-4 border-b border-slate-200 dark:border-slate-700 bg-sky-50 dark:bg-sky-700/30 rounded-t-lg">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"> {/* Matched modal overlay and z-index */}
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-11/12 md:w-3/4 lg:w-2/3 max-h-[90vh] flex flex-col"> {/* Matched modal dimensions and style */}
+            <div className="flex justify-between items-center p-4 border-b border-slate-200 dark:border-slate-700"> {/* Matched modal header */}
               <h3 className="font-semibold text-lg text-sky-700 dark:text-sky-200">Pratinjau Dokumen Pengajuan</h3>
               <button
                 onClick={() => {
                   setShowModal(false);
                   setDokumenUrl(null);
                 }}
-                className="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 transition-colors text-2xl"
+                className="text-slate-500 hover:text-sky-600 dark:text-slate-400 dark:hover:text-sky-300 transition-colors" /* Matched close button style */
                 aria-label="Tutup modal"
               >
                 &times;
@@ -669,16 +697,16 @@ export default function LaporanPengajuanDisetujuiPage() {
 
       {/* BAST Document Preview Modal */}
       {showBastModal && bastDokumenUrl && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[101] p-4"> {/* Increased z-index slightly more if needed */}
-          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-6xl h-[95vh] flex flex-col">
-            <div className="flex justify-between items-center p-4 border-b border-slate-200 dark:border-slate-700 bg-sky-50 dark:bg-sky-700/30 rounded-t-lg">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"> {/* Matched modal overlay and z-index */}
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-11/12 md:w-3/4 lg:w-2/3 max-h-[90vh] flex flex-col"> {/* Matched modal dimensions and style */}
+            <div className="flex justify-between items-center p-4 border-b border-slate-200 dark:border-slate-700"> {/* Matched modal header */}
               <h3 className="font-semibold text-lg text-sky-700 dark:text-sky-200">Pratinjau Dokumen BAST</h3>
               <button
                 onClick={() => {
                   setShowBastModal(false);
                   setBastDokumenUrl(null);
                 }}
-                className="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 transition-colors text-2xl"
+                className="text-slate-500 hover:text-sky-600 dark:text-slate-400 dark:hover:text-sky-300 transition-colors" /* Matched close button style */
                 aria-label="Tutup modal BAST"
               >
                 &times;
@@ -694,6 +722,12 @@ export default function LaporanPengajuanDisetujuiPage() {
           </div>
         </div>
       )}
-    </div>
+      </main>
+
+      {/* Footer - Consistent with dashboard */}
+      <footer className="py-4 text-center text-sm text-slate-500 dark:text-slate-400 border-t border-sky-200 dark:border-sky-700">
+        
+      </footer>
+    </div>    
   );
 }

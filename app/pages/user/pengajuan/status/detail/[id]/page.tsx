@@ -193,8 +193,8 @@ export default function PengajuanDetailPage() {
   };
 
   return (
-    <div className="min-h-screen bg-sky-50 dark:bg-slate-900 p-4"> {/* Ocean-themed background */}
-      <div className="max-w-4xl mx-auto bg-white dark:bg-slate-800 shadow-xl rounded-lg"> {/* Card background */}
+    <div className="min-h-screen bg-gradient-to-br from-blue-100 to-cyan-200 dark:from-blue-900 dark:to-cyan-950 p-4 md:p-6"> {/* Ocean-themed background */}
+      <div className="max-w-4xl mx-auto bg-blue-50 dark:bg-slate-800 shadow-xl rounded-lg"> {/* Card background */}
         <div className="bg-gradient-to-r from-blue-600 to-cyan-500 p-6 rounded-t-lg"> {/* Water gradient header */}
           <h1 className="text-xl font-bold text-white text-center">Detail Pengajuan</h1>
         </div>
@@ -266,7 +266,7 @@ export default function PengajuanDetailPage() {
 
               {/* Lock indicator if locked */}
               {isPengajuanLocked() && (
-                <div className="bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 p-3 rounded-md flex items-center justify-center text-slate-700 dark:text-slate-300">
+                <div className="bg-sky-100 dark:bg-slate-700 border border-sky-300 dark:border-slate-600 p-3 rounded-md flex items-center justify-center text-slate-700 dark:text-slate-300">
                   <svg className="w-5 h-5 mr-2 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
                   </svg>
@@ -278,7 +278,7 @@ export default function PengajuanDetailPage() {
               )}
 
               {/* Basic info card */}
-              <div className="bg-white dark:bg-slate-800 border border-sky-200 dark:border-slate-700 rounded-lg p-6 shadow-sm">
+              <div className="bg-blue-50 dark:bg-slate-800 border border-sky-200 dark:border-slate-700 rounded-lg p-6 shadow-sm">
                 <h2 className="text-lg font-semibold mb-4 pb-2 border-b border-sky-200 dark:border-slate-700 text-slate-800 dark:text-slate-200">Informasi Pengajuan</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -301,11 +301,11 @@ export default function PengajuanDetailPage() {
               </div>
 
               {/* Anggota kelompok card */}
-              <div className="bg-white dark:bg-slate-800 border border-sky-200 dark:border-slate-700 rounded-lg p-6 shadow-sm">
+              <div className="bg-blue-50 dark:bg-slate-800 border border-sky-200 dark:border-slate-700 rounded-lg p-6 shadow-sm">
                 <h2 className="text-lg font-semibold mb-4 pb-2 border-b border-sky-200 dark:border-slate-700 text-slate-800 dark:text-slate-200">Anggota Kelompok</h2>
                 {anggotaKelompok.length > 0 ? (
                   <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-sky-200 dark:divide-slate-700">
+                    <table className="min-w-full divide-y divide-sky-200 dark:divide-sky-700">
                       <thead className="bg-sky-50 dark:bg-slate-700">
                         <tr>
                           <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Nama</th>
@@ -314,7 +314,7 @@ export default function PengajuanDetailPage() {
                           <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">No. KUSUKA</th>
                         </tr>
                       </thead>
-                      <tbody className="bg-white dark:bg-slate-800 divide-y divide-sky-100 dark:divide-slate-700">
+                      <tbody className="bg-blue-50 dark:bg-slate-800 divide-y divide-sky-100 dark:divide-sky-800">
                         {anggotaKelompok.map((anggota, index) => (
                           <tr key={anggota.id_anggota} className={index % 2 === 0 ? 'bg-white dark:bg-slate-800' : 'bg-sky-50 dark:bg-slate-700/50'}>
                             <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-900 dark:text-slate-100">{anggota.nama_anggota}</td>
@@ -332,11 +332,11 @@ export default function PengajuanDetailPage() {
               </div>
 
               {/* Detail usulan card */}
-              <div className="bg-white dark:bg-slate-800 border border-sky-200 dark:border-slate-700 rounded-lg p-6 shadow-sm">
+              <div className="bg-blue-50 dark:bg-slate-800 border border-sky-200 dark:border-slate-700 rounded-lg p-6 shadow-sm">
                 <h2 className="text-lg font-semibold mb-4 pb-2 border-b border-sky-200 dark:border-slate-700 text-slate-800 dark:text-slate-200">Detail Usulan Alat</h2>
                 {detailUsulan.length > 0 ? (
                   <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-sky-200 dark:divide-slate-700">
+                    <table className="min-w-full divide-y divide-sky-200 dark:divide-sky-700">
                       <thead className="bg-sky-50 dark:bg-slate-700">
                         <tr>
                           <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">No</th>
@@ -344,7 +344,7 @@ export default function PengajuanDetailPage() {
                           <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Jumlah</th>
                         </tr>
                       </thead>
-                      <tbody className="bg-white dark:bg-slate-800 divide-y divide-sky-100 dark:divide-slate-700">
+                      <tbody className="bg-blue-50 dark:bg-slate-800 divide-y divide-sky-100 dark:divide-sky-800">
                         {detailUsulan.map((item, index) => (
                           <tr key={item.id_detail_usulan} className={index % 2 === 0 ? 'bg-white dark:bg-slate-800' : 'bg-sky-50 dark:bg-slate-700/50'}>
                             <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">{index + 1}</td>
@@ -361,7 +361,7 @@ export default function PengajuanDetailPage() {
               </div>
 
               {/* Dokumen card */}
-              <div className="bg-white dark:bg-slate-800 border border-sky-200 dark:border-slate-700 rounded-lg p-6 shadow-sm">
+              <div className="bg-blue-50 dark:bg-slate-800 border border-sky-200 dark:border-slate-700 rounded-lg p-6 shadow-sm">
                 <h2 className="text-lg font-semibold mb-4 pb-2 border-b border-sky-200 dark:border-slate-700 text-slate-800 dark:text-slate-200">Dokumen Pengajuan</h2>
                 {pengajuan.dokumen_pengajuan ? (
                   <div className="flex items-center justify-between p-4 bg-sky-50 dark:bg-slate-700/50 rounded-md">
@@ -387,7 +387,7 @@ export default function PengajuanDetailPage() {
 
               {/* Catatan verifikasi Admin */}
               {pengajuan.catatan_verifikasi && (
-                <div className="bg-white dark:bg-slate-800 border border-sky-200 dark:border-slate-700 rounded-lg p-6 shadow-sm">
+                <div className="bg-blue-50 dark:bg-slate-800 border border-sky-200 dark:border-slate-700 rounded-lg p-6 shadow-sm">
                   <h2 className="text-lg font-semibold mb-4 pb-2 border-b border-sky-200 dark:border-slate-700 text-slate-800 dark:text-slate-200">Catatan Verifikasi Admin</h2>
                   <div className="p-4 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-md">
                     <p className="text-sm text-amber-700 dark:text-amber-300">{pengajuan.catatan_verifikasi}</p>
@@ -397,7 +397,7 @@ export default function PengajuanDetailPage() {
 
               {/* Catatan verifikasi Kabid */}
               {pengajuan.catatan_verifikasi_kabid && (
-                <div className="bg-white dark:bg-slate-800 border border-sky-200 dark:border-slate-700 rounded-lg p-6 shadow-sm">
+                <div className="bg-blue-50 dark:bg-slate-800 border border-sky-200 dark:border-slate-700 rounded-lg p-6 shadow-sm">
                   <h2 className="text-lg font-semibold mb-4 pb-2 border-b border-sky-200 dark:border-slate-700 text-slate-800 dark:text-slate-200">Catatan Verifikasi Kepala Bidang</h2>
                   <div className="p-4 bg-sky-50 dark:bg-sky-900/30 border border-sky-200 dark:border-sky-700 rounded-md">
                     <p className="text-sm text-sky-700 dark:text-sky-300">{pengajuan.catatan_verifikasi_kabid}</p>

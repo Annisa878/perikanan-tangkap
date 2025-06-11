@@ -169,20 +169,26 @@ export default function VerifikasiMonitoringPage() {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-sky-50 via-cyan-50 to-teal-50 dark:from-slate-900 dark:via-sky-900 dark:to-teal-900 p-4 md:p-8">
-      <div className="space-y-6 md:space-y-8">
-        <Card className="bg-gradient-to-r from-sky-600 via-cyan-500 to-teal-500 text-white shadow-lg">
-          <CardHeader className="py-4 px-6">
-            <CardTitle className="text-xl md:text-2xl font-bold text-center md:text-left">
-              Verifikasi Data Monitoring
-            </CardTitle>
-          </CardHeader>
-        </Card>
+    // Applied main background gradient and layout from verifikasi_pengajuan page
+    <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-100 to-cyan-200 dark:from-blue-900 dark:to-cyan-950 text-slate-700 dark:text-slate-200">
+      {/* Header - Consistent with verifikasi_pengajuan */}
+      <header className="bg-white/70 dark:bg-sky-950/70 backdrop-blur-md py-4 shadow-md sticky top-0 z-40 border-b border-sky-300/70 dark:border-sky-800/70">
+        <div className="container mx-auto px-4 md:px-6">
+          <div className="text-xl md:text-2xl font-semibold flex items-center text-sky-700 dark:text-sky-300">
+            <Ship className="mr-2.5 h-6 w-6 text-cyan-600 dark:text-cyan-400" />
+            Verifikasi Data Monitoring
+          </div>
+        </div>
+      </header>
 
-        <Card className="w-full bg-white dark:bg-slate-800 shadow-xl border border-sky-200 dark:border-slate-700">
+      {/* Main Content */}
+      <main className="container mx-auto py-6 md:py-8 px-4 md:px-6 flex-1 space-y-6 md:space-y-8">
+
+        {/* Main Card for Daftar Monitoring - Styling consistent with verifikasi_pengajuan content cards */}
+        <Card className="w-full bg-white dark:bg-sky-900 shadow-xl border border-sky-200 dark:border-sky-700">
           <CardHeader className="border-b border-slate-200 dark:border-slate-700">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <CardTitle className="text-xl text-sky-700 dark:text-sky-300 shrink-0">Daftar Monitoring</CardTitle>
+              <CardTitle className="text-lg md:text-xl text-sky-700 dark:text-sky-300 shrink-0">Daftar Monitoring</CardTitle> {/* Adjusted title size slightly */}
               <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                 <div className="w-full sm:w-auto sm:min-w-[200px]">
                   <label htmlFor="domisiliFilter" className="sr-only">Filter Domisili:</label>
@@ -229,20 +235,20 @@ export default function VerifikasiMonitoringPage() {
             ) : (
               <div className="overflow-x-auto">
                 <Table>
-                  <TableHeader className="bg-slate-50 dark:bg-slate-700/50">
+                  <TableHeader className="bg-sky-100 dark:bg-sky-700/50">
                     <TableRow>
-                      <TableHead className="px-3 py-3 text-xs font-medium text-slate-600 dark:text-slate-300 uppercase">No</TableHead>
-                      <TableHead className="px-3 py-3 text-xs font-medium text-slate-600 dark:text-slate-300 uppercase">Nama Anggota</TableHead>
-                      <TableHead className="px-3 py-3 text-xs font-medium text-slate-600 dark:text-slate-300 uppercase">KUB</TableHead>
-                      <TableHead className="px-3 py-3 text-xs font-medium text-slate-600 dark:text-slate-300 uppercase">Domisili</TableHead>
-                      <TableHead className="px-3 py-3 text-xs font-medium text-slate-600 dark:text-slate-300 uppercase">Periode</TableHead>
-                      <TableHead className="px-3 py-3 text-xs font-medium text-slate-600 dark:text-slate-300 uppercase text-center">Status Kabid</TableHead>
-                      <TableHead className="w-[50px] px-3 py-3 text-xs font-medium text-slate-600 dark:text-slate-300 uppercase text-center">Aksi</TableHead>
+                      <TableHead className="px-3 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase">No</TableHead>
+                      <TableHead className="px-3 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase">Nama Anggota</TableHead>
+                      <TableHead className="px-3 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase">KUB</TableHead>
+                      <TableHead className="px-3 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase">Domisili</TableHead>
+                      <TableHead className="px-3 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase">Periode</TableHead>
+                      <TableHead className="px-3 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase text-center">Status Kabid</TableHead>
+                      <TableHead className="w-[50px] px-3 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase text-center">Aksi</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody className="divide-y divide-slate-200 dark:divide-slate-700">
                     {filteredMonitoringList.map((monitoring, index) => (
-                      <React.Fragment key={monitoring.id}>
+                      <React.Fragment key={monitoring.id}                      >
                         <TableRow className={`hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors ${expandedRowId === monitoring.id ? 'bg-sky-50 dark:bg-sky-700/20' : ''}`}>
                           <TableCell className="px-3 py-3 text-sm text-slate-700 dark:text-slate-200">{index + 1}</TableCell>
                           <TableCell className="px-3 py-3 text-sm text-slate-700 dark:text-slate-200 font-medium">{monitoring.nama_anggota}</TableCell>
@@ -292,13 +298,13 @@ export default function VerifikasiMonitoringPage() {
                                   <div className="p-4 border border-sky-200 dark:border-sky-700 rounded-lg bg-sky-50/50 dark:bg-sky-800/20">
                                     <h3 className="text-lg font-semibold text-sky-700 dark:text-sky-300 mb-3 flex items-center"><Ship size={20} className="mr-2" />Detail Hasil Produksi</h3>
                                     <div className="overflow-x-auto rounded-md border border-sky-200 dark:border-sky-600">
-                                      <Table className="min-w-full bg-white dark:bg-slate-800">
-                                        <TableHeader className="bg-sky-100 dark:bg-sky-700/50">
+                                      <Table className="min-w-full bg-white dark:bg-slate-800"> {/* Table inside expanded row */}
+                                        <TableHeader className="bg-sky-100 dark:bg-sky-700/50"> {/* Consistent header for inner table */}
                                           <TableRow>
-                                            <TableHead className="py-2.5 px-4 text-left text-xs font-medium text-sky-600 dark:text-sky-300 uppercase tracking-wider">Nama Ikan</TableHead>
-                                            <TableHead className="py-2.5 px-4 text-right text-xs font-medium text-sky-600 dark:text-sky-300 uppercase tracking-wider">Jumlah (Kg)</TableHead>
-                                            <TableHead className="py-2.5 px-4 text-right text-xs font-medium text-sky-600 dark:text-sky-300 uppercase tracking-wider">Harga/Kg (Rp)</TableHead>
-                                            <TableHead className="py-2.5 px-4 text-right text-xs font-medium text-sky-600 dark:text-sky-300 uppercase tracking-wider">Total Harga (Rp)</TableHead>
+                                            <TableHead className="py-2.5 px-4 text-left text-xs font-medium text-sky-700 dark:text-sky-200 uppercase tracking-wider">Nama Ikan</TableHead>
+                                            <TableHead className="py-2.5 px-4 text-right text-xs font-medium text-sky-700 dark:text-sky-200 uppercase tracking-wider">Jumlah (Kg)</TableHead>
+                                            <TableHead className="py-2.5 px-4 text-right text-xs font-medium text-sky-700 dark:text-sky-200 uppercase tracking-wider">Harga/Kg (Rp)</TableHead>
+                                            <TableHead className="py-2.5 px-4 text-right text-xs font-medium text-sky-700 dark:text-sky-200 uppercase tracking-wider">Total Harga (Rp)</TableHead>
                                           </TableRow>
                                         </TableHeader>
                                         <TableBody className="divide-y divide-sky-100 dark:divide-sky-700/50">
@@ -369,7 +375,8 @@ export default function VerifikasiMonitoringPage() {
             )}
           </CardContent>
         </Card>
-      </div>
+      </main>
+
     </div>
   );
 }

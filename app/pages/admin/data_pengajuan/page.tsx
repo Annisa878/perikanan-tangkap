@@ -1,9 +1,28 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react"; // Added React
 import { createClient } from "@/utils/supabase/client"; // Ensure this path is correct
 import { generatePengajuanExcelReport } from "@/utils/exportPengajuanToExcel"; 
+import { Ship, ChevronDown, ChevronRight } from "lucide-react"; // Added Ship icon and Chevrons
 import { useRouter } from "next/navigation"; // Import useRouter
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"; 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button"; // Import Button for actions
 
 // Define types
 interface PengajuanData {
@@ -140,11 +159,21 @@ export default function DataPengajuan() {
   const [filterNamaKub, setFilterNamaKub] = useState<string>(""); // State for Nama KUB filter
   const [availableBulan, setAvailableBulan] = useState<string[]>([]);
   const [availableTahun, setAvailableTahun] = useState<string[]>([]);
+
+  // State for Edit Pengajuan Dialog
+  const [isEditPengajuanModalOpen, setIsEditPengajuanModalOpen] = useState(false);
+  const [currentEditingPengajuan, setCurrentEditingPengajuan] = useState<PengajuanData | null>(null);
+  const [editPengajuanFormData, setEditPengajuanFormData] = useState({
+    tanggal_pengajuan: '',
+    wilayah_penangkapan: '',
+    alamat_kub: '',
+    kabupaten_kota: '',
+  });
   const [availableKabupatenKota, setAvailableKabupatenKota] = useState<string[]>([]);
 
   // Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 10; // Jumlah item per halaman, diubah menjadi 10
+  const [currentPage, setCurrentPage] = useState(1); // Diaktifkan kembali
+  const ITEMS_PER_PAGE = 10; // Diaktifkan kembali, jumlah item per halaman
 
   // Fetch all pengajuan data
   useEffect(() => {
@@ -158,7 +187,7 @@ export default function DataPengajuan() {
             *,
             kelompok:kelompok_id(nama_kub, alamat_kub, kabupaten_kota)
           `)
-          .order('created_at', { ascending: false });
+          .order('tanggal_pengajuan', { ascending: false });
 
         if (error) throw error;
         const rawData = data as RawPengajuanFromSupabase[];
@@ -391,6 +420,106 @@ export default function DataPengajuan() {
     }
   };
 
+  // Handle opening the edit dialog for Pengajuan
+  const handleOpenEditPengajuanDialog = (pengajuan: PengajuanData) => {
+    if (isPengajuanLocked()) {
+      alert("Tidak dapat mengedit pengajuan yang telah diverifikasi oleh Kepala Bidang.");
+      return;
+    }
+    setCurrentEditingPengajuan(pengajuan);
+    setEditPengajuanFormData({
+      tanggal_pengajuan: pengajuan.tanggal_pengajuan ? new Date(pengajuan.tanggal_pengajuan).toISOString().split('T')[0] : '', // Format to YYYY-MM-DD
+      wilayah_penangkapan: pengajuan.wilayah_penangkapan || '',
+      alamat_kub: pengajuan.alamat_kub || '',
+      kabupaten_kota: pengajuan.kabupaten_kota || '',
+    });
+    setIsEditPengajuanModalOpen(true);
+  };
+
+  // Handle input change for edit pengajuan form
+  const handleEditPengajuanInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setEditPengajuanFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  // Handle saving edited pengajuan
+  const handleSaveEditedPengajuan = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentEditingPengajuan) return;
+
+    // Data for 'pengajuan' table
+    const pengajuanUpdateData = {
+      tanggal_pengajuan: editPengajuanFormData.tanggal_pengajuan,
+      wilayah_penangkapan: editPengajuanFormData.wilayah_penangkapan,
+    };
+
+    // Data for 'kelompok' table
+    const kelompokUpdateData = {
+      alamat_kub: editPengajuanFormData.alamat_kub,
+      kabupaten_kota: editPengajuanFormData.kabupaten_kota,
+    };
+
+    try {
+      // Update 'pengajuan' table
+      const { error: pengajuanError } = await supabase
+        .from('pengajuan')
+        .update(pengajuanUpdateData)
+        .eq('id_pengajuan', currentEditingPengajuan.id_pengajuan);
+
+      if (pengajuanError) throw pengajuanError;
+
+      // Update 'kelompok' table
+      if (currentEditingPengajuan.kelompok_id) {
+        const { error: kelompokError } = await supabase
+          .from('kelompok')
+          .update(kelompokUpdateData)
+          .eq('id_kelompok', currentEditingPengajuan.kelompok_id); // Assuming PK of kelompok table is 'id_kelompok'
+
+        if (kelompokError) throw kelompokError;
+      } else {
+        console.warn("kelompok_id is missing, cannot update kelompok data.");
+      }
+
+      // Update local state
+      setPengajuanList(prevList =>
+        prevList.map(p => {
+          let updatedP = { ...p };
+          // Update fields from 'pengajuan' table
+          if (p.id_pengajuan === currentEditingPengajuan.id_pengajuan) {
+            updatedP = {
+              ...updatedP,
+              ...pengajuanUpdateData,
+            };
+          }
+          // Update fields from 'kelompok' table if kelompok_id matches
+          if (p.kelompok_id === currentEditingPengajuan.kelompok_id) {
+            updatedP = {
+              ...updatedP,
+              ...kelompokUpdateData, // This will update alamat_kub and kabupaten_kota
+            };
+          }
+          return updatedP;
+        })
+      );
+      
+      if (selectedPengajuan && selectedPengajuan.id_pengajuan === currentEditingPengajuan.id_pengajuan) {
+        setSelectedPengajuan(prevSelected => prevSelected ? { 
+          ...prevSelected, 
+          ...pengajuanUpdateData, 
+          ...kelompokUpdateData,   // Fields from kelompok table
+        } : null);
+      }
+
+      setIsEditPengajuanModalOpen(false);
+      setCurrentEditingPengajuan(null);
+      alert("Data pengajuan berhasil diperbarui.");
+    } catch (error) {
+      console.error("Error updating pengajuan:", error);
+      alert("Gagal memperbarui data pengajuan.");
+    }
+  };
+
+
   // Handle BAST document preview
   const handlePreviewBastDocument = async () => {
     if (!selectedPengajuan || !selectedPengajuan.dokumen_bast) {
@@ -622,6 +751,41 @@ export default function DataPengajuan() {
     }
   };
 
+  // Handle deleting a pengajuan
+  const handleDeletePengajuan = async (id_pengajuan: string, nama_kub: string) => {
+    if (isPengajuanLocked()) {
+      alert("Tidak dapat menghapus pengajuan yang telah diverifikasi oleh Kepala Bidang.");
+      return;
+    }
+
+    if (!confirm(`Apakah Anda yakin ingin menghapus pengajuan dari KUB "${nama_kub}"? Tindakan ini tidak dapat diurungkan dan akan menghapus semua detail terkait.`)) {
+      return;
+    }
+
+    try {
+      // Optional: Delete related detail_usulan first if no cascade delete is set up
+      // const { error: detailError } = await supabase
+      //   .from('detail_usulan')
+      //   .delete()
+      //   .eq('pengajuan_id', id_pengajuan);
+      // if (detailError) throw detailError;
+
+      const { error } = await supabase
+        .from('pengajuan')
+        .delete()
+        .eq('id_pengajuan', id_pengajuan);
+
+      if (error) throw error;
+
+      setPengajuanList(pengajuanList.filter(p => p.id_pengajuan !== id_pengajuan));
+      setSelectedPengajuan(null); // Clear selection if the deleted item was selected
+      alert(`Pengajuan dari KUB "${nama_kub}" berhasil dihapus.`);
+    } catch (error) {
+      console.error("Error deleting pengajuan:", error);
+      alert("Gagal menghapus pengajuan.");
+    }
+  };
+
   // Get status badge color
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
@@ -645,7 +809,7 @@ export default function DataPengajuan() {
 
   // Filtered data
   const filteredPengajuanList = pengajuanList.filter((p: PengajuanData) => { // Explicitly type p
-    const pengajuanDate = new Date(p.created_at);
+    const pengajuanDate = new Date(p.tanggal_pengajuan); 
     const pengajuanBulan = pengajuanDate.toLocaleString('id-ID', { month: 'long' });
     const pengajuanTahun = pengajuanDate.getFullYear().toString();
 
@@ -660,10 +824,10 @@ export default function DataPengajuan() {
   });
 
   // Pagination logic
-  const indexOfLastItem = currentPage * ITEMS_PER_PAGE;
-  const indexOfFirstItem = indexOfLastItem - ITEMS_PER_PAGE;
-  const currentItems = filteredPengajuanList.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(filteredPengajuanList.length / ITEMS_PER_PAGE);
+  const indexOfLastItem = currentPage * ITEMS_PER_PAGE; // Diaktifkan kembali
+  const indexOfFirstItem = indexOfLastItem - ITEMS_PER_PAGE; // Diaktifkan kembali
+  const currentItems = filteredPengajuanList.slice(indexOfFirstItem, indexOfLastItem); // Diaktifkan kembali
+  const totalPages = Math.ceil(filteredPengajuanList.length / ITEMS_PER_PAGE); // Diaktifkan kembali
 
 
   // Handle export to Excel
@@ -724,12 +888,29 @@ export default function DataPengajuan() {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-slate-100 dark:bg-slate-900">
-      <div className="container mx-auto p-4 md:p-6">
-        <h1 className="text-2xl md:text-3xl font-bold mb-6 text-slate-800 dark:text-slate-100">Data Pengajuan Bantuan</h1>
+  // Handle page change for pagination
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+  };
 
-      <div className="mb-6 p-4 md:p-6 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800 shadow-lg">
+  return (
+    // Mengadopsi layout utama dan latar belakang dari halaman admin lainnya
+    <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-100 to-cyan-200 dark:from-blue-900 dark:to-cyan-950 text-slate-700 dark:text-slate-200">
+      {/* Header disesuaikan dengan gaya admin lainnya */}
+      <header className="bg-white/70 dark:bg-sky-950/70 backdrop-blur-md py-4 shadow-md sticky top-0 z-40 border-b border-sky-300/70 dark:border-sky-800/70">
+        <div className="container mx-auto px-4 md:px-6">
+          <div className="text-xl md:text-2xl font-semibold flex items-center text-sky-700 dark:text-sky-300">
+            <Ship className="mr-2.5 h-6 w-6 text-cyan-600 dark:text-cyan-400" />
+            Data Pengajuan
+          </div>
+        </div>
+      </header>
+
+      {/* Kontainer konten utama disesuaikan */}
+      <main className="container mx-auto py-6 md:py-8 px-4 md:px-6 flex-1">
+       
+
+      <div className="mb-6 p-4 md:p-6 border border-sky-200 dark:border-sky-700 rounded-xl bg-blue-50 dark:bg-slate-800 shadow-lg">
         <div className="flex flex-wrap items-end gap-x-4 gap-y-2">
           <div className="flex-grow min-w-[150px] sm:min-w-[200px]">
             <label htmlFor="filterNamaKub" className="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-0.5">Nama KUB</label>
@@ -739,7 +920,7 @@ export default function DataPengajuan() {
               value={filterNamaKub}
               onChange={(e) => setFilterNamaKub(e.target.value)}
               placeholder="Cari Nama KUB..."
-              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-sky-500 focus:border-sky-500 transition-colors"
+              className="w-full px-3 py-2 border border-sky-300 dark:border-sky-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-sky-500 focus:border-sky-500 transition-colors"
             />
           </div>
           <div className="flex-grow min-w-[150px] sm:min-w-[180px]">
@@ -748,7 +929,7 @@ export default function DataPengajuan() {
               id="filterStatusAdmin"
               value={filterStatusAdmin}
               onChange={(e) => setFilterStatusAdmin(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-sky-500 focus:border-sky-500 transition-colors"
+              className="w-full px-3 py-2 border border-sky-300 dark:border-sky-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-sky-500 focus:border-sky-500 transition-colors"
             >
               <option value="">Semua Status Admin</option>
               {statusOptions.map(status => <option key={status} value={status}>{status}</option>)}
@@ -760,7 +941,7 @@ export default function DataPengajuan() {
               id="filterStatusKabid"
               value={filterStatusKabid}
               onChange={(e) => setFilterStatusKabid(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-sky-500 focus:border-sky-500 transition-colors"
+              className="w-full px-3 py-2 border border-sky-300 dark:border-sky-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-sky-500 focus:border-sky-500 transition-colors"
             >
               <option value="">Semua Status Kabid</option>
               {/* Assuming these are the possible Kabid statuses */}
@@ -776,7 +957,7 @@ export default function DataPengajuan() {
               id="filterBulan"
               value={filterBulan}
               onChange={(e) => setFilterBulan(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-sky-500 focus:border-sky-500 transition-colors"
+              className="w-full px-3 py-2 border border-sky-300 dark:border-sky-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-sky-500 focus:border-sky-500 transition-colors"
             >
               <option value="">Semua Bulan</option>
               {availableBulan.map(bulan => <option key={bulan} value={bulan}>{bulan}</option>)}
@@ -788,7 +969,7 @@ export default function DataPengajuan() {
               id="filterTahun"
               value={filterTahun}
               onChange={(e) => setFilterTahun(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-sky-500 focus:border-sky-500 transition-colors"
+              className="w-full px-3 py-2 border border-sky-300 dark:border-sky-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-sky-500 focus:border-sky-500 transition-colors"
             >
               <option value="">Semua Tahun</option>
               {availableTahun.map(tahun => <option key={tahun} value={tahun}>{tahun}</option>)}
@@ -800,7 +981,7 @@ export default function DataPengajuan() {
               id="filterKabupatenKota"
               value={filterKabupatenKota}
               onChange={(e) => setFilterKabupatenKota(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-sky-500 focus:border-sky-500 transition-colors"
+              className="w-full px-3 py-2 border border-sky-300 dark:border-sky-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-sky-500 focus:border-sky-500 transition-colors"
             >
               <option value="">Semua Kabupaten/Kota</option>
               {availableKabupatenKota.map(kab => <option key={kab} value={kab}>{kab}</option>)}
@@ -827,7 +1008,7 @@ export default function DataPengajuan() {
             <button
               onClick={handleExportToExcel}
               disabled={isExporting || filteredPengajuanList.length === 0}
-              className="w-full sm:w-auto px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-md shadow-sm hover:shadow-md transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center text-sm"
+              className="w-full sm:w-auto px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white font-medium rounded-md shadow-sm hover:shadow-md transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center text-sm"
             >
               {isExporting ? (
                 <><svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Mengekspor...</>
@@ -836,7 +1017,7 @@ export default function DataPengajuan() {
             <button
               onClick={handleExportApprovedKabidToExcel}
               disabled={isExporting}
-              className="w-full sm:w-auto px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md shadow-sm hover:shadow-md transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center text-sm"
+              className="w-full sm:w-auto px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white font-medium rounded-md shadow-sm hover:shadow-md transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center text-sm"
             >
               {isExporting ? (
                 <><svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Mengekspor...</>
@@ -847,449 +1028,492 @@ export default function DataPengajuan() {
       </div>
 
       {/* Full-width container for list and expandable details */}
-      <div className="w-full bg-white dark:bg-slate-800 p-4 md:p-5 rounded-xl shadow-lg flex flex-col">
-          <h2 className="font-semibold text-xl mb-4 text-slate-800 dark:text-slate-100 border-b pb-3 border-slate-200 dark:border-slate-700">Daftar Pengajuan</h2>
+      <div className="w-full bg-blue-50 dark:bg-slate-800 p-4 md:p-5 rounded-xl shadow-lg flex flex-col border border-sky-100 dark:border-sky-800">
+          <h2 className="font-semibold text-xl mb-4 text-sky-700 dark:text-sky-200 border-b pb-3 border-sky-200 dark:border-sky-700">Daftar Pengajuan</h2>
           {isLoading ? (
-            <p className="text-center py-4 text-slate-500 dark:text-slate-400">Memuat data...</p>
+            <p className="text-center py-4 text-slate-600 dark:text-slate-400">Memuat data...</p>
           ) : pengajuanList.length === 0 ? (
-            <p className="text-center py-4 text-slate-500 dark:text-slate-400 flex-grow flex items-center justify-center">Tidak ada data pengajuan</p>
+            <p className="text-center py-4 text-slate-600 dark:text-slate-400 flex-grow flex items-center justify-center">Tidak ada data pengajuan</p>
           ) : (
             <>
-              <div className="space-y-2.5 flex-grow pr-1"> {/* Removed overflow and max-h */}
-                {currentItems.length > 0 ? currentItems.map((item) => (
-                  <div key={item.id_pengajuan} className="border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-                    <div
-                      className={`p-4 cursor-pointer transition-colors duration-200 ease-in-out rounded-t-lg
-                        ${selectedPengajuan?.id_pengajuan === item.id_pengajuan 
-                          ? 'bg-sky-100 dark:bg-sky-700/60' 
-                          : 'hover:bg-slate-50 dark:hover:bg-slate-700/40'
-                      }`}
-                      onClick={() => handleViewDetail(item)}
-                    >
-                      <div className="flex justify-between items-center">
-                        <div className="flex-grow">
-                          <span className="font-semibold text-sm text-slate-800 dark:text-slate-100 truncate block" title={item.nama_kub}> {/* text-base to text-sm */}
-                              {item.nama_kub}
-                          </span>
-                          <div className="flex items-center text-xs text-slate-500 dark:text-slate-400 mt-0"> {/* mt-0.5 to mt-0 */}
-                            <span>
-                              {item.wilayah_penangkapan === 'perairan_umum_daratan' ? 'Daratan' : 'Laut'}
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader className="bg-sky-600 dark:bg-sky-700">
+                    <TableRow>
+                      <TableHead className="text-white font-semibold w-[50px]">No.</TableHead> {/* Added No. column header */}
+                      <TableHead className="text-white font-semibold">Nama KUB</TableHead>
+                      <TableHead className="text-white font-semibold">Tgl. Pengajuan</TableHead>
+                      <TableHead className="text-white font-semibold">Wilayah</TableHead>
+                      <TableHead className="text-white font-semibold">Status Admin</TableHead>
+                      <TableHead className="text-white font-semibold">Status Kabid</TableHead>
+                      <TableHead className="text-white font-semibold text-center">Aksi</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody className="divide-y divide-slate-200 dark:divide-slate-700">
+                    {currentItems.length > 0 ? currentItems.map((item, index) => (
+                      <React.Fragment key={item.id_pengajuan}>
+                        <TableRow 
+                          className={`hover:bg-sky-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer ${selectedPengajuan?.id_pengajuan === item.id_pengajuan ? 'bg-sky-100 dark:bg-sky-700/60' : ''}`}
+                          // onClick={() => handleViewDetail(item)} // Option 1: Click row to view detail
+                        >
+                          <TableCell className="text-slate-600 dark:text-slate-300 py-3 px-4 text-center">{index + 1}</TableCell> {/* Added No. cell */}
+                          <TableCell className="font-medium text-slate-700 dark:text-slate-200 py-3 px-4">{item.nama_kub}</TableCell>
+                          <TableCell className="text-slate-600 dark:text-slate-300 py-3 px-4">
+                            {new Date(item.tanggal_pengajuan).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
+                          </TableCell>
+                          <TableCell className="text-slate-600 dark:text-slate-300 py-3 px-4">
+                            {item.wilayah_penangkapan === 'perairan_umum_daratan' ? 'Daratan' : 'Laut'}
+                          </TableCell>
+                          <TableCell className="py-3 px-4">
+                            <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap ${getStatusBadgeColor(item.status_verifikasi || 'Menunggu')}`}>
+                              {item.status_verifikasi || 'Menunggu'}
                             </span>
-                            <span className="mx-1.5">·</span>
-                            <span className="whitespace-nowrap">
-                              {new Date(item.tanggal_pengajuan).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-2 flex-shrink-0 ml-2">
-                          <span 
-                            className={`text-[0.7rem] px-1.5 py-0.5 rounded-full whitespace-nowrap ${getStatusBadgeColor(item.status_verifikasi || 'Menunggu')}`} /* Adjusted text size and padding */
-                            title={`Admin: ${item.status_verifikasi || 'Menunggu'}`}
-                          >
-                            {item.status_verifikasi || 'Menunggu'}
-                          </span>
-                          {item.status_verifikasi_kabid && (
-                            <span 
-                              className={`text-[0.7rem] px-1.5 py-0.5 rounded-full whitespace-nowrap ${getKabidStatusBadgeColor(item.status_verifikasi_kabid)} flex items-center`} /* Adjusted text size and padding */
-                              title={`Kabid: ${item.status_verifikasi_kabid}`}
-                            >
-                              {item.status_verifikasi_kabid}
-                              {["Disetujui Sepenuhnya", "Disetujui Sebagian", "Ditolak"].includes(item.status_verifikasi_kabid) && (
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 ml-1 text-slate-500 dark:text-slate-400" viewBox="0 0 20 20" fill="currentColor">
-                                  <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                                </svg>
-                              )}
-                            </span>
-                          )}
-                          <div className="flex items-center text-slate-500 dark:text-slate-400">
-                            <span className="text-xs mr-1">Detail</span>
-                            <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 transform transition-transform duration-200 ${selectedPengajuan?.id_pengajuan === item.id_pengajuan ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor">
-                              <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                            </svg>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Expanded Detail Section */}
-                    {selectedPengajuan?.id_pengajuan === item.id_pengajuan && (
-                      <div className="p-4 md:p-6 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-200 dark:border-slate-600 rounded-b-lg">
-                        {isDetailLoading ? (
-                          <p className="text-center py-4 text-slate-500 dark:text-slate-400">Memuat detail...</p>
-                        ) : (
-                          <div>
-                            {/* Content from original right column starts here */}
-                            <div className="mb-6 p-4 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-700/50">
-                              <div className="flex justify-between items-start mb-2">
-                                <div>
-                                  <h3 className="font-medium text-lg text-slate-800 dark:text-slate-100">{selectedPengajuan.nama_kub}</h3>
-                                  <div className="text-sm mt-1 text-slate-600 dark:text-slate-300">
-                                    <span className="font-medium text-slate-700 dark:text-slate-200">Alamat KUB:</span>{' '}
-                                    {selectedPengajuan.alamat_kub}
-                                  </div>
-                                  <div className="text-sm text-slate-600 dark:text-slate-300">
-                                    <span className="font-medium text-slate-700 dark:text-slate-200">Kabupaten/Kota:</span>{' '}
-                                    {selectedPengajuan.kabupaten_kota}
-                                  </div>
-                                  <div className="text-sm text-slate-600 dark:text-slate-300">
-                                    <span className="font-medium text-slate-700 dark:text-slate-200">Wilayah Penangkapan:</span>{' '}
-                                    {selectedPengajuan.wilayah_penangkapan === 'perairan_umum_daratan' ? 'Perairan Daratan' : 'Laut'}
-                                  </div>
-                                  <div className="text-sm text-slate-600 dark:text-slate-300">
-                                    <span className="font-medium text-slate-700 dark:text-slate-200">Tanggal Pengajuan:</span>{' '}
-                                    {new Date(selectedPengajuan.tanggal_pengajuan).toLocaleDateString('id-ID', {
-                                      day: 'numeric', month: 'long', year: 'numeric'
-                                    })}
-                                  </div>
-                                </div>
-                                <div className="flex flex-col items-end flex-shrink-0 ml-4">
-                                  <span className={`text-sm px-2 py-1 rounded-full ${getStatusBadgeColor(selectedPengajuan.status_verifikasi || 'Menunggu')}`}>
-                                    Admin: {selectedPengajuan.status_verifikasi || 'Menunggu'}
-                                  </span>
-                                  {selectedPengajuan.status_verifikasi_kabid && (
-                                    <span className={`text-sm px-2 py-1 rounded-full mt-1.5 ${getKabidStatusBadgeColor(selectedPengajuan.status_verifikasi_kabid)}`}>
-                                      Kabid: {selectedPengajuan.status_verifikasi_kabid}
-                                    </span>
-                                  )}
-                                  {isPengajuanLocked() && (
-                                    <span className="mt-1.5 text-xs text-slate-500 dark:text-slate-400 flex items-center">
-                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1 text-slate-400 dark:text-slate-500" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                                      </svg>
-                                      Terkunci
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="flex space-x-4 mt-3 pt-3 border-t border-slate-200 dark:border-slate-600">
-                                <button
-                                  onClick={handlePreviewDocument}
-                                  className="text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300 text-sm underline"
+                          </TableCell>
+                          <TableCell className="py-3 px-4">
+                            {item.status_verifikasi_kabid ? (
+                              <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap ${getKabidStatusBadgeColor(item.status_verifikasi_kabid)} flex items-center`}>
+                                {item.status_verifikasi_kabid}
+                                {["Disetujui Sepenuhnya", "Disetujui Sebagian", "Ditolak"].includes(item.status_verifikasi_kabid) && (
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 ml-1 text-slate-500 dark:text-slate-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                                  </svg>
+                                )}
+                              </span>
+                            ) : (
+                              <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap ${getKabidStatusBadgeColor('Menunggu')}`}>
+                                Menunggu
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right py-3 px-4">
+                            <div className="flex justify-end items-center space-x-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleViewDetail(item)}
+                                className="text-sky-600 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-300 px-2 flex items-center"
+                              >
+                                <span className="mr-1 text-xs">
+                                  {selectedPengajuan?.id_pengajuan === item.id_pengajuan ? "Tutup" : "Detail"}
+                                </span>
+                                {selectedPengajuan?.id_pengajuan === item.id_pengajuan ? 
+                                  <ChevronDown className="h-4 w-4" /> : 
+                                  <ChevronRight className="h-4 w-4" />}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleOpenEditPengajuanDialog(item)}
+                                className="text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300 px-2"
+                                disabled={isPengajuanLocked()}
+                              >
+                                Edit
+                              </Button>
+                              {!isPengajuanLocked() && ( // Hanya tampilkan tombol hapus jika tidak terkunci
+                                 <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDeletePengajuan(item.id_pengajuan, item.nama_kub)}
+                                  className="text-rose-500 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 px-2"
                                 >
-                                  Lihat Dokumen Pengajuan
-                                </button>
-                              </div>
+                                  Hapus
+                                </Button>
+                              )}
                             </div>
-
-                            {/* Detail Usulan Section */}
-                            <div className="mb-6 p-4 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-700/50">
-                              <h3 className="font-medium mb-3 text-slate-700 dark:text-slate-200">Detail Usulan Alat Tangkap</h3>
-                              <div className="overflow-x-auto rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
-                                <table className="min-w-full bg-white dark:bg-slate-800 ">
-                                  {/* ...thead and tbody for detailUsulan... */}
-                                  <thead className="bg-gradient-to-r from-sky-500 to-cyan-400 dark:from-sky-700 dark:to-cyan-600">
-                                    <tr>
-                                      <th className="py-3 px-4 text-left text-xs font-semibold text-white dark:text-sky-100 uppercase tracking-wider">Nama Alat</th>
-                                      <th className="py-3 px-4 text-left text-xs font-semibold text-white dark:text-sky-100 uppercase tracking-wider">Jumlah</th>
-                                      <th className="py-3 px-4 text-left text-xs font-semibold text-white dark:text-sky-100 uppercase tracking-wider">Harga Satuan</th>
-                                      <th className="py-3 px-4 text-left text-xs font-semibold text-white dark:text-sky-100 uppercase tracking-wider">Harga Total</th>
-                                      <th className="py-3 px-4 text-right text-xs font-semibold text-white dark:text-sky-100 uppercase tracking-wider">Aksi</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody className="divide-y divide-sky-100 dark:divide-sky-800">
-                                    {detailUsulan.length > 0 ? detailUsulan.map((item: DetailUsulan) => ( 
-                                      <tr key={item.id_detail_usulan} className="hover:bg-sky-50 dark:hover:bg-sky-900/50 transition-colors duration-150">
-                                        <td className="py-3 px-4 text-sm text-slate-700 dark:text-slate-300">
-                                          {item.nama_alat}
-                                        </td>
-                                        <td className="py-3 px-4 text-sm text-slate-700 dark:text-slate-300">
-                                          {isEditingItem === item.id_detail_usulan && editItemData ? (
-                                            <input
-                                              type="number"
-                                              min="1"
-                                              value={editItemData.jumlah_alat}
-                                              onChange={(e) => {
-                                                const jumlahAlat = parseInt(e.target.value) || 1;
-                                                setEditItemData({
-                                                  ...editItemData,
-                                                  jumlah_alat: jumlahAlat,
-                                                  harga_total: jumlahAlat * (editItemData.harga_satuan || 0)
-                                                });
-                                              }}
-                                              className="w-20 border border-slate-300 dark:border-slate-600 px-2 py-1 rounded text-sm bg-white dark:bg-slate-700 focus:ring-sky-500 focus:border-sky-500"
-                                            />
-                                          ) : (
-                                            item.jumlah_alat
+                          </TableCell>
+                        </TableRow>
+                        {/* Expanded Detail Section - MOVED HERE */}
+                        {selectedPengajuan?.id_pengajuan === item.id_pengajuan && (
+                          <TableRow className="bg-sky-50/30 dark:bg-slate-700/30">
+                            <TableCell colSpan={7}> {/* ColSpan disesuaikan dengan jumlah kolom header (termasuk No.) */}
+                              <div className="p-4 md:p-6 bg-sky-50 dark:bg-sky-800/30 border border-sky-200 dark:border-sky-600 rounded-lg shadow-md my-2">
+                                {isDetailLoading ? (
+                                  <p className="text-center py-4 text-slate-600 dark:text-slate-400">Memuat detail...</p>
+                                ) : (
+                                  <div>
+                                    {/* Content from original right column starts here */}
+                                    <div className="mb-6 p-4 border border-sky-200 dark:border-sky-700 rounded-lg bg-white dark:bg-slate-700/50">
+                                      <div className="flex justify-between items-start mb-2">
+                                        <div>
+                                          <h3 className="font-medium text-lg text-slate-800 dark:text-slate-100">{selectedPengajuan.nama_kub}</h3>
+                                          <div className="text-sm mt-1 text-slate-600 dark:text-slate-300">
+                                            <span className="font-medium text-slate-700 dark:text-slate-200">Alamat KUB:</span>{' '}
+                                        {selectedPengajuan.alamat_kub || '-'}
+                                          </div>
+                                          <div className="text-sm text-slate-600 dark:text-slate-300">
+                                            <span className="font-medium text-slate-700 dark:text-slate-200">Kabupaten/Kota:</span>{' '}
+                                        {selectedPengajuan.kabupaten_kota || '-'}
+                                          </div>
+                                          <div className="text-sm text-slate-600 dark:text-slate-300">
+                                            <span className="font-medium text-slate-700 dark:text-slate-200">Wilayah Penangkapan:</span>{' '}
+                                            {selectedPengajuan.wilayah_penangkapan === 'perairan_umum_daratan' ? 'Perairan Daratan' : 'Laut'}
+                                          </div>
+                                          <div className="text-sm text-slate-600 dark:text-slate-300">
+                                            <span className="font-medium text-slate-700 dark:text-slate-200">Tanggal Pengajuan:</span>{' '}
+                                            {new Date(selectedPengajuan.tanggal_pengajuan).toLocaleDateString('id-ID', {
+                                              day: 'numeric', month: 'long', year: 'numeric'
+                                            })}
+                                          </div>
+                                        </div>
+                                        <div className="flex flex-col items-end flex-shrink-0 ml-4">
+                                          <span className={`text-sm px-2 py-1 rounded-full ${getStatusBadgeColor(selectedPengajuan.status_verifikasi || 'Menunggu')}`}>
+                                            Admin: {selectedPengajuan.status_verifikasi || 'Menunggu'}
+                                          </span>
+                                          {selectedPengajuan.status_verifikasi_kabid && (
+                                            <span className={`text-sm px-2 py-1 rounded-full mt-1.5 ${getKabidStatusBadgeColor(selectedPengajuan.status_verifikasi_kabid)}`}>
+                                              Kabid: {selectedPengajuan.status_verifikasi_kabid}
+                                            </span>
                                           )}
-                                        </td>
-                                        <td className="py-3 px-4 text-sm text-slate-700 dark:text-slate-300">
-                                          {isEditingItem === item.id_detail_usulan && editItemData ? (
-                                            <input
-                                              type="number"
-                                              min="0"
-                                              value={editItemData.harga_satuan}
-                                              onChange={(e) => {
-                                                const hargaSatuan = parseInt(e.target.value) || 0;
-                                                setEditItemData({
-                                                  ...editItemData,
-                                                  harga_satuan: hargaSatuan,
-                                                  harga_total: (editItemData.jumlah_alat) * hargaSatuan
-                                                });
-                                              }}
-                                              className="w-32 border border-slate-300 dark:border-slate-600 px-2 py-1 rounded text-sm bg-white dark:bg-slate-700 focus:ring-sky-500 focus:border-sky-500"
-                                            />
-                                          ) : (
-                                            new Intl.NumberFormat('id-ID', {
-                                              style: 'currency',
-                                              currency: 'IDR',
-                                              minimumFractionDigits: 0
-                                            }).format(item.harga_satuan || 0)
+                                          {isPengajuanLocked() && (
+                                            <span className="mt-1.5 text-xs text-slate-500 dark:text-slate-400 flex items-center">
+                                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1 text-slate-400 dark:text-slate-500" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                                              </svg>
+                                              Terkunci
+                                            </span>
                                           )}
-                                        </td>
-                                        <td className="py-3 px-4 text-sm text-slate-700 dark:text-slate-300">
-                                          {new Intl.NumberFormat('id-ID', {
-                                            style: 'currency',
-                                            currency: 'IDR',
-                                            minimumFractionDigits: 0
-                                          }).format(
-                                            isEditingItem === item.id_detail_usulan && editItemData
-                                              ? (editItemData.harga_total || editItemData.jumlah_alat * (editItemData.harga_satuan || 0))
-                                              : (item.harga_total || item.jumlah_alat * (item.harga_satuan || 0) || 0)
-                                          )}
-                                        </td>
-                                        <td className="py-3 px-4 text-sm text-right">
-                                          {isEditingItem === item.id_detail_usulan ? (
-                                            <div className="flex justify-end space-x-2">
-                                              <button
-                                                onClick={saveEditItem}
-                                                className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 text-sm"
-                                              >
-                                                Simpan
-                                              </button>
-                                              <button
-                                                onClick={cancelEditItem}
-                                                className="text-slate-600 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 text-sm"
-                                              >
-                                                Batal
-                                              </button>
-                                            </div>
-                                          ) : (
-                                            <div className="flex justify-end space-x-2">
-                                              {!isPengajuanLocked() ? (
-                                                <>
-                                                  <button
-                                                    onClick={() => startEditItem(item)}
-                                                    className="text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300 text-sm"
-                                                  >
-                                                    Edit
-                                                  </button>
-                                                  <button
-                                                    onClick={() => handleDeleteItem(item.id_detail_usulan)}
-                                                    className="text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 text-sm"
-                                                  >
-                                                    Hapus
-                                                  </button>
-                                                </>
-                                              ) : (
-                                                <span className="text-slate-500 dark:text-slate-400 text-sm">Terkunci</span>
-                                              )
-                                             }
-                                            </div>
-                                          )}
-                                        </td>
-                                      </tr>
-                                    )) : (
-                                      <tr>
-                                        <td colSpan={5} className="py-4 px-4 text-center text-sm text-slate-500 dark:text-slate-400">
-                                          Tidak ada detail usulan untuk pengajuan ini.
-                                        </td>
-                                      </tr>
-                                    )}
-                                    <tr className="bg-slate-50 dark:bg-slate-700/50">
-                                      <td colSpan={3} className="py-3 px-4 text-right font-semibold text-slate-700 dark:text-slate-200">
-                                        Total Keseluruhan:
-                                      </td>
-                                      <td className="py-3 px-4 font-semibold text-slate-700 dark:text-slate-200">
-                                        {new Intl.NumberFormat('id-ID', {
-                                          style: 'currency',
-                                          currency: 'IDR',
-                                          minimumFractionDigits: 0
-                                        }).format(detailUsulan.reduce((total, item) => {
-                                          let itemTotal = item.harga_total || item.jumlah_alat * (item.harga_satuan || 0) || 0;
-                                          if (isEditingItem === item.id_detail_usulan && editItemData) {
-                                            itemTotal = editItemData.harga_total || 
-                                              editItemData.jumlah_alat * (editItemData.harga_satuan || 0) || 0;
-                                          }
-                                          return total + itemTotal;
-                                        }, 0))}
-                                      </td>
-                                      <td className="py-3 px-4"></td>
-                                    </tr>
-                                  </tbody>
-                                </table>
-                              </div>
-                            </div>
+                                        </div>
+                                      </div>
+                                      <div className="flex space-x-4 mt-3 pt-3 border-t border-sky-200 dark:border-sky-600">
+                                        <button
+                                          onClick={handlePreviewDocument}
+                                          className="text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300 text-sm underline"
+                                        >
+                                          Lihat Dokumen Pengajuan
+                                        </button>
+                                      </div>
+                                    </div>
 
-                            {/* Anggota Kelompok Section */}
-                            <div className="mb-6 p-4 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-700/50">
-                              <h3 className="font-medium mb-3 text-slate-700 dark:text-slate-200">Detail Anggota Kelompok</h3>
-                              <div className="overflow-x-auto rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
-                                <table className="min-w-full bg-white dark:bg-slate-800">
-                                  {/* ...thead and tbody for anggotaKelompok... */}
-                                  <thead className="bg-gradient-to-r from-teal-500 to-emerald-400 dark:from-teal-700 dark:to-emerald-600">
-                                    <tr>
-                                      <th className="py-3 px-4 text-left text-xs font-semibold text-white dark:text-teal-100 uppercase tracking-wider">Nama</th>
-                                      <th className="py-3 px-4 text-left text-xs font-semibold text-white dark:text-teal-100 uppercase tracking-wider">Jabatan</th>
-                                      <th className="py-3 px-4 text-left text-xs font-semibold text-white dark:text-teal-100 uppercase tracking-wider">NIK</th>
-                                      <th className="py-3 px-4 text-left text-xs font-semibold text-white dark:text-teal-100 uppercase tracking-wider">No. Kusuka</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody className="divide-y divide-teal-100 dark:divide-teal-800">
-                                    {anggotaKelompok.length > 0 ? anggotaKelompok.map((anggota: AnggotaKelompok) => ( 
-                                      <tr key={anggota.id_anggota} className="hover:bg-teal-50 dark:hover:bg-teal-900/50 transition-colors duration-150">
-                                        <td className="py-3 px-4 text-sm text-slate-700 dark:text-slate-300">{anggota.nama_anggota}</td>
-                                        <td className="py-3 px-4 text-sm text-slate-700 dark:text-slate-300 capitalize">{anggota.jabatan}</td>
-                                        <td className="py-3 px-4 text-sm text-slate-700 dark:text-slate-300">{anggota.nik}</td>
-                                        <td className="py-3 px-4 text-sm text-slate-700 dark:text-slate-300">{anggota.no_kusuka}</td>
-                                      </tr>
-                                    )) : (
-                                      <tr>
-                                        <td colSpan={4} className="py-4 px-4 text-center text-sm text-slate-500 dark:text-slate-400">
-                                          Tidak ada data anggota untuk kelompok ini.
-                                        </td>
-                                      </tr>
-                                    )}
-                                  </tbody>
-                                </table>
-                              </div>
-                            </div>
+                                    {/* Detail Usulan Section */}
+                                    <div className="mb-6 p-4 border border-sky-200 dark:border-sky-700 rounded-lg bg-white dark:bg-slate-700/50">
+                                      <h3 className="font-medium mb-3 text-slate-700 dark:text-slate-200">Detail Usulan Alat Tangkap</h3>
+                                      <div className="overflow-x-auto rounded-lg shadow-sm border border-sky-200 dark:border-sky-700">
+                                        <table className="min-w-full bg-white dark:bg-slate-800 ">
+                                          {/* TableHeader disesuaikan dengan tema flat */}
+                                          <thead className="bg-sky-100 dark:bg-sky-700/50">
+                                            <tr>
+                                              <th className="py-3 px-4 text-left text-xs font-medium text-sky-700 dark:text-sky-200 uppercase tracking-wider">Nama Alat</th>
+                                              <th className="py-3 px-4 text-left text-xs font-medium text-sky-700 dark:text-sky-200 uppercase tracking-wider">Jumlah</th>
+                                              <th className="py-3 px-4 text-left text-xs font-medium text-sky-700 dark:text-sky-200 uppercase tracking-wider">Harga Satuan</th>
+                                              <th className="py-3 px-4 text-left text-xs font-medium text-sky-700 dark:text-sky-200 uppercase tracking-wider">Harga Total</th>
+                                              <th className="py-3 px-4 text-right text-xs font-medium text-sky-700 dark:text-sky-200 uppercase tracking-wider">Aksi</th>
+                                            </tr>
+                                          </thead>
+                                          <tbody className="divide-y divide-sky-100 dark:divide-sky-800">
+                                            {detailUsulan.length > 0 ? detailUsulan.map((item_detail: DetailUsulan) => ( 
+                                              <tr key={item_detail.id_detail_usulan} className="hover:bg-sky-50 dark:hover:bg-sky-900/50 transition-colors duration-150">
+                                                <td className="py-3 px-4 text-sm text-slate-700 dark:text-slate-300">
+                                                  {item_detail.nama_alat}
+                                                </td>
+                                                <td className="py-3 px-4 text-sm text-slate-700 dark:text-slate-300">
+                                                  {isEditingItem === item_detail.id_detail_usulan && editItemData ? (
+                                                    <input
+                                                      type="number"
+                                                      min="1"
+                                                      value={editItemData.jumlah_alat}
+                                                      onChange={(e) => {
+                                                        const jumlahAlat = parseInt(e.target.value) || 1;
+                                                        setEditItemData({
+                                                          ...editItemData,
+                                                          jumlah_alat: jumlahAlat,
+                                                          harga_total: jumlahAlat * (editItemData.harga_satuan || 0)
+                                                        });
+                                                      }}
+                                                      className="w-20 border border-sky-300 dark:border-sky-600 px-2 py-1 rounded text-sm bg-white dark:bg-slate-700 focus:ring-sky-500 focus:border-sky-500 text-slate-900 dark:text-slate-100"
+                                                    />
+                                                  ) : (
+                                                    item_detail.jumlah_alat
+                                                  )}
+                                                </td>
+                                                <td className="py-3 px-4 text-sm text-slate-700 dark:text-slate-300">
+                                                  {isEditingItem === item_detail.id_detail_usulan && editItemData ? (
+                                                    <input
+                                                      type="number"
+                                                      min="0"
+                                                      value={editItemData.harga_satuan}
+                                                      onChange={(e) => {
+                                                        const hargaSatuan = parseInt(e.target.value) || 0;
+                                                        setEditItemData({
+                                                          ...editItemData,
+                                                          harga_satuan: hargaSatuan,
+                                                          harga_total: (editItemData.jumlah_alat) * hargaSatuan
+                                                        });
+                                                      }}
+                                                      className="w-32 border border-sky-300 dark:border-sky-600 px-2 py-1 rounded text-sm bg-white dark:bg-slate-700 focus:ring-sky-500 focus:border-sky-500 text-slate-900 dark:text-slate-100"
+                                                    />
+                                                  ) : (
+                                                    new Intl.NumberFormat('id-ID', {
+                                                      style: 'currency',
+                                                      currency: 'IDR',
+                                                      minimumFractionDigits: 0
+                                                    }).format(item_detail.harga_satuan || 0)
+                                                  )}
+                                                </td>
+                                                <td className="py-3 px-4 text-sm text-slate-700 dark:text-slate-300">
+                                                  {new Intl.NumberFormat('id-ID', {
+                                                    style: 'currency',
+                                                    currency: 'IDR',
+                                                    minimumFractionDigits: 0
+                                                  }).format(
+                                                    isEditingItem === item_detail.id_detail_usulan && editItemData
+                                                      ? (editItemData.harga_total || editItemData.jumlah_alat * (editItemData.harga_satuan || 0))
+                                                      : (item_detail.harga_total || item_detail.jumlah_alat * (item_detail.harga_satuan || 0) || 0)
+                                                  )}
+                                                </td>
+                                                <td className="py-3 px-4 text-sm text-right">
+                                                  {isEditingItem === item_detail.id_detail_usulan ? (
+                                                    <div className="flex justify-end space-x-2">
+                                                      <button
+                                                        onClick={saveEditItem}
+                                                        className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 text-sm"
+                                                      >
+                                                        Simpan
+                                                      </button>
+                                                      <button
+                                                        onClick={cancelEditItem}
+                                                        className="text-slate-600 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 text-sm"
+                                                      >
+                                                        Batal
+                                                      </button>
+                                                    </div>
+                                                  ) : (
+                                                    <div className="flex justify-end space-x-2">
+                                                      {!isPengajuanLocked() ? (
+                                                        <>
+                                                          <button
+                                                            onClick={() => startEditItem(item_detail)}
+                                                            className="text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300 text-sm"
+                                                          >
+                                                            Edit
+                                                          </button>
+                                                          <button
+                                                            onClick={() => handleDeleteItem(item_detail.id_detail_usulan)}
+                                                            className="text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 text-sm"
+                                                          >
+                                                            Hapus
+                                                          </button>
+                                                        </>
+                                                      ) : (
+                                                        <span className="text-slate-500 dark:text-slate-400 text-sm">Terkunci</span>
+                                                      )
+                                                     }
+                                                    </div>
+                                                  )}
+                                                </td>
+                                              </tr>
+                                            )) : (
+                                              <tr>
+                                                <td colSpan={5} className="py-4 px-4 text-center text-sm text-slate-500 dark:text-slate-400">
+                                                  Tidak ada detail usulan.
+                                                </td>
+                                              </tr>
+                                            )}
+                                            <tr className="bg-slate-50 dark:bg-slate-700/50">
+                                              <td colSpan={3} className="py-3 px-4 text-right font-semibold text-slate-700 dark:text-slate-200">
+                                                Total Keseluruhan:
+                                              </td>
+                                              <td className="py-3 px-4 font-semibold text-slate-700 dark:text-slate-200">
+                                                {new Intl.NumberFormat('id-ID', {
+                                                  style: 'currency',
+                                                  currency: 'IDR',
+                                                  minimumFractionDigits: 0
+                                                }).format(detailUsulan.reduce((total, item_detail_reduce) => {
+                                                  let itemTotal = item_detail_reduce.harga_total || item_detail_reduce.jumlah_alat * (item_detail_reduce.harga_satuan || 0) || 0;
+                                                  if (isEditingItem === item_detail_reduce.id_detail_usulan && editItemData) {
+                                                    itemTotal = editItemData.harga_total || 
+                                                      editItemData.jumlah_alat * (editItemData.harga_satuan || 0) || 0;
+                                                  }
+                                                  return total + itemTotal;
+                                                }, 0))}
+                                              </td>
+                                              <td className="py-3 px-4"></td>
+                                            </tr>
+                                          </tbody>
+                                        </table>
+                                      </div>
+                                    </div>
 
-                            {/* Verifikasi Dokumen Section */}
-                            <div className="mb-6 p-4 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-700/50">
-                              <h3 className="font-medium mb-3 text-slate-700 dark:text-slate-200">Verifikasi Dokumen</h3>
-                              <div className="grid grid-cols-2 gap-2 mb-4">
-                                {/* ...checkboxes for dokumenChecklist... */}
-                                  <label className={`flex items-center text-sm text-slate-700 dark:text-slate-300 ${isPengajuanLocked() ? 'cursor-not-allowed opacity-70' : ''}`}>
-                                    <input type="checkbox" checked={dokumenChecklist.proposal} onChange={() => handleChecklistChange('proposal')} className="mr-2" disabled={isPengajuanLocked()} />
-                                    <span>Proposal</span>
-                                  </label>
-                                  <label className={`flex items-center text-sm text-slate-700 dark:text-slate-300 ${isPengajuanLocked() ? 'cursor-not-allowed opacity-70' : ''}`}>
-                                    <input type="checkbox" checked={dokumenChecklist.surat_usulan} onChange={() => handleChecklistChange('surat_usulan')} className="mr-2" disabled={isPengajuanLocked()} />
-                                    <span>Surat Usulan</span>
-                                  </label>
-                                  <label className={`flex items-center text-sm text-slate-700 dark:text-slate-300 ${isPengajuanLocked() ? 'cursor-not-allowed opacity-70' : ''}`}>
-                                    <input type="checkbox" checked={dokumenChecklist.foto_ktp} onChange={() => handleChecklistChange('foto_ktp')} className="mr-2" disabled={isPengajuanLocked()} />
-                                    <span>Foto KTP</span>
-                                  </label>
-                                  <label className={`flex items-center text-sm text-slate-700 dark:text-slate-300 ${isPengajuanLocked() ? 'cursor-not-allowed opacity-70' : ''}`}>
-                                    <input type="checkbox" checked={dokumenChecklist.surat_ktm} onChange={() => handleChecklistChange('surat_ktm')} className="mr-2" disabled={isPengajuanLocked()} />
-                                    <span>Surat KTM</span>
-                                  </label>
-                                  <label className={`flex items-center text-sm text-slate-700 dark:text-slate-300 ${isPengajuanLocked() ? 'cursor-not-allowed opacity-70' : ''}`}>
-                                    <input type="checkbox" checked={dokumenChecklist.foto_rumah} onChange={() => handleChecklistChange('foto_rumah')} className="mr-2" disabled={isPengajuanLocked()} />
-                                    <span>Foto Rumah</span>
-                                  </label>
-                                  <label className={`flex items-center text-sm text-slate-700 dark:text-slate-300 ${isPengajuanLocked() ? 'cursor-not-allowed opacity-70' : ''}`}>
-                                    <input type="checkbox" checked={dokumenChecklist.foto_alat_tangkap} onChange={() => handleChecklistChange('foto_alat_tangkap')} className="mr-2" disabled={isPengajuanLocked()} />
-                                    <span>Foto Alat Tangkap</span>
-                                  </label>
-                                  <label className={`flex items-center text-sm text-slate-700 dark:text-slate-300 ${isPengajuanLocked() ? 'cursor-not-allowed opacity-70' : ''}`}>
-                                    <input type="checkbox" checked={dokumenChecklist.kartu_kusuka} onChange={() => handleChecklistChange('kartu_kusuka')} className="mr-2" disabled={isPengajuanLocked()} />
-                                    <span>Kartu Kusuka</span>
-                                  </label>
-                                  <label className={`flex items-center text-sm text-slate-700 dark:text-slate-300 ${isPengajuanLocked() ? 'cursor-not-allowed opacity-70' : ''}`}>
-                                    <input type="checkbox" checked={dokumenChecklist.foto_kapal} onChange={() => handleChecklistChange('foto_kapal')} className="mr-2" disabled={isPengajuanLocked()} />
-                                    <span>Foto Kapal</span>
-                                  </label>
-                                  <label className={`flex items-center text-sm text-slate-700 dark:text-slate-300 ${isPengajuanLocked() ? 'cursor-not-allowed opacity-70' : ''}`}>
-                                    <input type="checkbox" checked={dokumenChecklist.bpjs} onChange={() => handleChecklistChange('bpjs')} className="mr-2" disabled={isPengajuanLocked()} />
-                                    <span>BPJS (Opsional)</span>
-                                  </label>
-                                  <label className={`flex items-center text-sm text-slate-700 dark:text-slate-300 ${isPengajuanLocked() ? 'cursor-not-allowed opacity-70' : ''}`}>
-                                    <input type="checkbox" checked={dokumenChecklist.kis} onChange={() => handleChecklistChange('kis')} className="mr-2" disabled={isPengajuanLocked()} />
-                                    <span>KIS (Opsional)</span>
-                                  </label>
-                              </div>
-                            </div>
+                                    {/* Anggota Kelompok Section */}
+                                    <div className="mb-6 p-4 border border-sky-200 dark:border-sky-700 rounded-lg bg-white dark:bg-slate-700/50">
+                                      <h3 className="font-medium mb-3 text-slate-700 dark:text-slate-200">Detail Anggota Kelompok</h3>
+                                      <div className="overflow-x-auto rounded-lg shadow-sm border border-sky-200 dark:border-sky-700">
+                                        <table className="min-w-full bg-white dark:bg-slate-800">
+                                          {/* TableHeader disesuaikan dengan tema flat */}
+                                          <thead className="bg-sky-100 dark:bg-sky-700/50">
+                                            <tr>
+                                              <th className="py-3 px-4 text-left text-xs font-medium text-sky-700 dark:text-sky-200 uppercase tracking-wider">Nama</th>
+                                              <th className="py-3 px-4 text-left text-xs font-medium text-sky-700 dark:text-sky-200 uppercase tracking-wider">Jabatan</th>
+                                              <th className="py-3 px-4 text-left text-xs font-medium text-sky-700 dark:text-sky-200 uppercase tracking-wider">NIK</th>
+                                              <th className="py-3 px-4 text-left text-xs font-medium text-sky-700 dark:text-sky-200 uppercase tracking-wider">No. Kusuka</th>
+                                            </tr>
+                                          </thead>
+                                          <tbody className="divide-y divide-teal-100 dark:divide-teal-800">
+                                            {anggotaKelompok.length > 0 ? anggotaKelompok.map((anggota: AnggotaKelompok) => ( 
+                                              <tr key={anggota.id_anggota} className="hover:bg-teal-50 dark:hover:bg-teal-900/50 transition-colors duration-150">
+                                                <td className="py-3 px-4 text-sm text-slate-700 dark:text-slate-300">{anggota.nama_anggota}</td>
+                                                <td className="py-3 px-4 text-sm text-slate-700 dark:text-slate-300 capitalize">{anggota.jabatan}</td>
+                                                <td className="py-3 px-4 text-sm text-slate-700 dark:text-slate-300">{anggota.nik}</td>
+                                                <td className="py-3 px-4 text-sm text-slate-700 dark:text-slate-300">{anggota.no_kusuka}</td>
+                                              </tr>
+                                            )) : (
+                                              <tr>
+                                                <td colSpan={4} className="py-4 px-4 text-center text-sm text-slate-500 dark:text-slate-400">
+                                                  Tidak ada data anggota.
+                                                </td>
+                                              </tr>
+                                            )}
+                                          </tbody>
+                                        </table>
+                                      </div>
+                                    </div>
 
-                            {/* Informasi BAST Section */}
-                            <div className="mb-6 p-4 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-700/50">
-                              <h3 className="font-medium mb-3 text-slate-700 dark:text-slate-200">Informasi BAST</h3>
-                              {/* ...noBastInput, bastFile input, preview BAST button... */}
-                                <div className="mb-3">
-                                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">No. BAST</label>
-                                  <input type="text" value={noBastInput} onChange={(e) => setNoBastInput(e.target.value)} placeholder="Masukkan Nomor BAST" className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-sky-500 focus:border-sky-500 transition-colors" disabled={isPengajuanLocked()} />
-                                </div>
-                                <div className="mb-3">
-                                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Upload Dokumen BAST (PDF)</label>
-                                  <input type="file" onChange={(e) => setBastFile(e.target.files ? e.target.files[0] : null)} className="w-full text-sm text-slate-500 dark:text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-sky-100 file:text-sky-700 hover:file:bg-sky-200 dark:file:bg-sky-700 dark:file:text-sky-200 dark:hover:file:bg-sky-600" accept=".pdf" disabled={isPengajuanLocked()} />
-                                </div>
-                                {selectedPengajuan.dokumen_bast && (
-                                  <button onClick={handlePreviewBastDocument} className="text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300 text-sm underline">Lihat Dokumen BAST</button>
+                                    {/* Verifikasi Dokumen Section */}
+                                    <div className="mb-6 p-4 border border-sky-200 dark:border-sky-700 rounded-lg bg-white dark:bg-slate-700/50">
+                                      <h3 className="font-medium mb-3 text-slate-700 dark:text-slate-200">Verifikasi Dokumen</h3>
+                                      <div className="grid grid-cols-2 gap-2 mb-4">
+                                        {/* ...checkboxes for dokumenChecklist... */}
+                                          <label className={`flex items-center text-sm text-slate-700 dark:text-slate-300 ${isPengajuanLocked() ? 'cursor-not-allowed opacity-70' : ''}`}>
+                                            <input type="checkbox" checked={dokumenChecklist.proposal} onChange={() => handleChecklistChange('proposal')} className="mr-2" disabled={isPengajuanLocked()} />
+                                            <span>Proposal</span>
+                                          </label>
+                                          <label className={`flex items-center text-sm text-slate-700 dark:text-slate-300 ${isPengajuanLocked() ? 'cursor-not-allowed opacity-70' : ''}`}>
+                                            <input type="checkbox" checked={dokumenChecklist.surat_usulan} onChange={() => handleChecklistChange('surat_usulan')} className="mr-2" disabled={isPengajuanLocked()} />
+                                            <span>Surat Usulan</span>
+                                          </label>
+                                          <label className={`flex items-center text-sm text-slate-700 dark:text-slate-300 ${isPengajuanLocked() ? 'cursor-not-allowed opacity-70' : ''}`}>
+                                            <input type="checkbox" checked={dokumenChecklist.foto_ktp} onChange={() => handleChecklistChange('foto_ktp')} className="mr-2" disabled={isPengajuanLocked()} />
+                                            <span>Foto KTP</span>
+                                          </label>
+                                          <label className={`flex items-center text-sm text-slate-700 dark:text-slate-300 ${isPengajuanLocked() ? 'cursor-not-allowed opacity-70' : ''}`}>
+                                            <input type="checkbox" checked={dokumenChecklist.surat_ktm} onChange={() => handleChecklistChange('surat_ktm')} className="mr-2" disabled={isPengajuanLocked()} />
+                                            <span>Surat KTM</span>
+                                          </label>
+                                          <label className={`flex items-center text-sm text-slate-700 dark:text-slate-300 ${isPengajuanLocked() ? 'cursor-not-allowed opacity-70' : ''}`}>
+                                            <input type="checkbox" checked={dokumenChecklist.foto_rumah} onChange={() => handleChecklistChange('foto_rumah')} className="mr-2" disabled={isPengajuanLocked()} />
+                                            <span>Foto Rumah</span>
+                                          </label>
+                                          <label className={`flex items-center text-sm text-slate-700 dark:text-slate-300 ${isPengajuanLocked() ? 'cursor-not-allowed opacity-70' : ''}`}>
+                                            <input type="checkbox" checked={dokumenChecklist.foto_alat_tangkap} onChange={() => handleChecklistChange('foto_alat_tangkap')} className="mr-2" disabled={isPengajuanLocked()} />
+                                            <span>Foto Alat Tangkap</span>
+                                          </label>
+                                          <label className={`flex items-center text-sm text-slate-700 dark:text-slate-300 ${isPengajuanLocked() ? 'cursor-not-allowed opacity-70' : ''}`}>
+                                            <input type="checkbox" checked={dokumenChecklist.kartu_kusuka} onChange={() => handleChecklistChange('kartu_kusuka')} className="mr-2" disabled={isPengajuanLocked()} />
+                                            <span>Kartu Kusuka</span>
+                                          </label>
+                                          <label className={`flex items-center text-sm text-slate-700 dark:text-slate-300 ${isPengajuanLocked() ? 'cursor-not-allowed opacity-70' : ''}`}>
+                                            <input type="checkbox" checked={dokumenChecklist.foto_kapal} onChange={() => handleChecklistChange('foto_kapal')} className="mr-2" disabled={isPengajuanLocked()} />
+                                            <span>Foto Kapal</span>
+                                          </label>
+                                          <label className={`flex items-center text-sm text-slate-700 dark:text-slate-300 ${isPengajuanLocked() ? 'cursor-not-allowed opacity-70' : ''}`}>
+                                            <input type="checkbox" checked={dokumenChecklist.bpjs} onChange={() => handleChecklistChange('bpjs')} className="mr-2" disabled={isPengajuanLocked()} />
+                                            <span>BPJS (Opsional)</span>
+                                          </label>
+                                          <label className={`flex items-center text-sm text-slate-700 dark:text-slate-300 ${isPengajuanLocked() ? 'cursor-not-allowed opacity-70' : ''}`}>
+                                            <input type="checkbox" checked={dokumenChecklist.kis} onChange={() => handleChecklistChange('kis')} className="mr-2" disabled={isPengajuanLocked()} />
+                                            <span>KIS (Opsional)</span>
+                                          </label>
+                                      </div>
+                                    </div>
+
+                                    {/* Informasi BAST Section */}
+                                    <div className="mb-6 p-4 border border-sky-200 dark:border-sky-700 rounded-lg bg-white dark:bg-slate-700/50">
+                                      <h3 className="font-medium mb-3 text-slate-700 dark:text-slate-200">Informasi BAST</h3>
+                                      {/* ...noBastInput, bastFile input, preview BAST button... */}
+                                        <div className="mb-3">
+                                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">No. BAST</label>
+                                          <input type="text" value={noBastInput} onChange={(e) => setNoBastInput(e.target.value)} placeholder="Masukkan Nomor BAST" className="w-full px-3 py-2 border border-sky-300 dark:border-sky-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-sky-500 focus:border-sky-500 transition-colors" disabled={isPengajuanLocked()} />
+                                        </div>
+                                        <div className="mb-3">
+                                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Upload Dokumen BAST (PDF)</label>
+                                          <input type="file" onChange={(e) => setBastFile(e.target.files ? e.target.files[0] : null)} className="w-full text-sm text-slate-500 dark:text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-sky-100 file:text-sky-700 hover:file:bg-sky-200 dark:file:bg-sky-800 dark:file:text-sky-100 dark:hover:file:bg-sky-700" accept=".pdf" disabled={isPengajuanLocked()} />
+                                        </div>
+                                        {selectedPengajuan.dokumen_bast && (
+                                          <button onClick={handlePreviewBastDocument} className="text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300 text-sm underline">Lihat Dokumen BAST</button>
+                                        )}
+                                    </div>
+
+                                    {/* Status Verifikasi Section */}
+                                    <div className="p-4 border border-sky-200 dark:border-sky-700 rounded-lg bg-white dark:bg-slate-700/50">
+                                      <h3 className="font-medium mb-3 text-slate-700 dark:text-slate-200">Status Verifikasi & Catatan</h3>
+                                      {/* ...statusVerifikasi select, catatan textarea, saveVerification button... */}
+                                        <div className="mb-3">
+                                          <select value={statusVerifikasi} onChange={(e) => setStatusVerifikasi(e.target.value)} className="w-full px-3 py-2 border border-sky-300 dark:border-sky-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-sky-500 focus:border-sky-500 transition-colors" disabled={isPengajuanLocked()}>
+                                            {statusOptions.map((option) => (<option key={option} value={option}>{option}</option>))}
+                                          </select>
+                                        </div>
+                                        <div className="mb-3">
+                                          <textarea value={catatan} onChange={(e) => setCatatan(e.target.value)} placeholder="Catatan verifikasi (opsional)..." className="w-full px-3 py-2 border border-sky-300 dark:border-sky-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-sky-500 focus:border-sky-500 transition-colors" rows={3} disabled={isPengajuanLocked()}></textarea>
+                                        </div>
+                                        <button onClick={saveVerification} className={`px-4 py-2 ${isPengajuanLocked() ? 'bg-slate-400 dark:bg-slate-600 cursor-not-allowed' : 'bg-sky-600 hover:bg-sky-700 dark:bg-sky-500 dark:hover:bg-sky-600'} text-white rounded-lg transition-colors`} disabled={isPengajuanLocked()}>
+                                          Simpan Perubahan
+                                        </button>
+                                        {isPengajuanLocked() && (
+                                          <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 flex items-center">
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 text-slate-400 dark:text-slate-500" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" /></svg>
+                                            Status verifikasi terkunci karena sudah diverifikasi oleh Kepala Bidang
+                                          </p>
+                                        )}
+                                    </div>
+                                    {/* End of content from original right column */}
+                                  </div>
                                 )}
-                            </div>
-
-                            {/* Status Verifikasi Section */}
-                            <div className="p-4 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-700/50">
-                              <h3 className="font-medium mb-3 text-slate-700 dark:text-slate-200">Status Verifikasi & Catatan</h3>
-                              {/* ...statusVerifikasi select, catatan textarea, saveVerification button... */}
-                                <div className="mb-3">
-                                  <select value={statusVerifikasi} onChange={(e) => setStatusVerifikasi(e.target.value)} className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-sky-500 focus:border-sky-500 transition-colors" disabled={isPengajuanLocked()}>
-                                    {statusOptions.map((option) => (<option key={option} value={option}>{option}</option>))}
-                                  </select>
-                                </div>
-                                <div className="mb-3">
-                                  <textarea value={catatan} onChange={(e) => setCatatan(e.target.value)} placeholder="Catatan verifikasi (opsional)..." className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-sky-500 focus:border-sky-500 transition-colors" rows={3} disabled={isPengajuanLocked()}></textarea>
-                                </div>
-                                <button onClick={saveVerification} className={`px-4 py-2 ${isPengajuanLocked() ? 'bg-slate-400 dark:bg-slate-600 cursor-not-allowed' : 'bg-sky-600 hover:bg-sky-700 dark:bg-sky-500 dark:hover:bg-sky-600'} text-white rounded-lg transition-colors`} disabled={isPengajuanLocked()}>
-                                  Simpan Perubahan
-                                </button>
-                                {isPengajuanLocked() && (
-                                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 flex items-center">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 text-slate-400 dark:text-slate-500" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" /></svg>
-                                    Status verifikasi terkunci karena sudah diverifikasi oleh Kepala Bidang
-                                  </p>
-                                )}
-                            </div>
-                            {/* End of content from original right column */}
-                          </div>
+                              </div>
+                            </TableCell>
+                          </TableRow>
                         )}
-                      </div>
+                      </React.Fragment>
+                    )) : (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-10 text-slate-500 dark:text-slate-400"> {/* ColSpan disesuaikan */}
+                          Tidak ada data pengajuan yang sesuai dengan filter.
+                        </TableCell>
+                      </TableRow>
                     )}
-                  </div>
-                )) : (
-                  <p className="text-center py-4 text-slate-500 dark:text-slate-400 flex-grow flex items-center justify-center">Tidak ada data pengajuan yang sesuai dengan filter.</p>
-                )}
+                  </TableBody>
+                </Table>
               </div>
-              {/* Pagination Controls */}
+              {/* Pagination Controls - Diaktifkan kembali */}
               {filteredPengajuanList.length > ITEMS_PER_PAGE && (
-                <div className="mt-auto pt-4 flex justify-between items-center border-t border-slate-200 dark:border-slate-700">
-                  <button
-                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                <div className="mt-4 pt-4 flex justify-between items-center border-t border-sky-200 dark:border-sky-700">
+                  <Button
+                    onClick={() => handlePageChange(currentPage - 1)}
                     disabled={currentPage === 1}
-                    className="px-3 py-1.5 text-sm bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+                    variant="outline"
+                    className="text-sm px-3 py-1.5 border-sky-300 dark:border-sky-600 text-sky-700 dark:text-sky-300 hover:bg-sky-100 dark:hover:bg-sky-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Sebelumnya
-                  </button>
+                  </Button>
                   <span className="text-sm text-slate-600 dark:text-slate-400">
                     Halaman {currentPage} dari {totalPages}
                   </span>
-                  <button
-                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  <Button
+                    onClick={() => handlePageChange(currentPage + 1)}
                     disabled={currentPage === totalPages}
-                    className="px-3 py-1.5 text-sm bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+                    variant="outline"
+                    className="text-sm px-3 py-1.5 border-sky-300 dark:border-sky-600 text-sky-700 dark:text-sky-300 hover:bg-sky-100 dark:hover:bg-sky-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Berikutnya
-                  </button>
+                  </Button>
                 </div>
               )}
             </>
           )}
       </div>
-    </div> {/* Closing tag for the container div starting at line 728 */}
+
+    </main>
 
       {/* Document Preview Modal */}
       {showModal && dokumenUrl && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-slate-800 rounded-xl w-11/12 md:w-5/6 lg:w-11/12 max-h-[95vh] flex flex-col shadow-2xl">
-            <div className="flex justify-between items-center p-4 border-b border-slate-200 dark:border-slate-700">
-              <h3 className="font-semibold text-lg text-slate-800 dark:text-slate-100">Dokumen Pengajuan</h3>
+          <div className="bg-white dark:bg-slate-800 rounded-xl w-11/12 md:w-5/6 lg:w-11/12 max-h-[95vh] flex flex-col shadow-2xl border border-sky-200 dark:border-sky-700">
+            <div className="flex justify-between items-center p-4 border-b border-sky-200 dark:border-sky-700">
+              <h3 className="font-semibold text-lg text-sky-700 dark:text-sky-200">Dokumen Pengajuan</h3>
               <button
                 onClick={() => {
                   setShowModal(false);
                   setDokumenUrl(null);
                 }}
-                className="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700"
+                className="text-slate-500 dark:text-slate-400 hover:text-sky-600 dark:hover:text-sky-300 transition-colors p-1 rounded-full hover:bg-sky-100 dark:hover:bg-sky-700"
               >
                 ✕
               </button>
@@ -1297,7 +1521,7 @@ export default function DataPengajuan() {
             <div className="flex-1 p-4 overflow-auto">
               <iframe
                 src={dokumenUrl}
-                className="w-full h-[80vh] border"
+                className="w-full h-[80vh] border border-sky-200 dark:border-sky-700 rounded"
                 title="Document Preview"
               ></iframe>
             </div>
@@ -1308,15 +1532,15 @@ export default function DataPengajuan() {
       {/* BAST Document Preview Modal */}
       {showBastModal && bastDokumenUrl && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-slate-800 rounded-xl w-full sm:w-11/12 md:w-5/6 lg:w-11/12 max-h-[95vh] flex flex-col shadow-2xl">
-            <div className="flex justify-between items-center p-4 border-b border-slate-200 dark:border-slate-700">
-              <h3 className="font-semibold text-lg text-slate-800 dark:text-slate-100">Dokumen BAST</h3>
+          <div className="bg-white dark:bg-slate-800 rounded-xl w-full sm:w-11/12 md:w-5/6 lg:w-11/12 max-h-[95vh] flex flex-col shadow-2xl border border-sky-200 dark:border-sky-700">
+            <div className="flex justify-between items-center p-4 border-b border-sky-200 dark:border-sky-700">
+              <h3 className="font-semibold text-lg text-sky-700 dark:text-sky-200">Dokumen BAST</h3>
               <button
                 onClick={() => {
                   setShowBastModal(false);
                   setBastDokumenUrl(null);
                 }}
-                className="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700"
+                className="text-slate-500 dark:text-slate-400 hover:text-sky-600 dark:hover:text-sky-300 transition-colors p-1 rounded-full hover:bg-sky-100 dark:hover:bg-sky-700"
               >
                 ✕
               </button>
@@ -1324,13 +1548,91 @@ export default function DataPengajuan() {
             <div className="flex-1 p-4 overflow-auto">
               <iframe
                 src={bastDokumenUrl}
-                className="w-full h-[80vh] border"
+                className="w-full h-[80vh] border border-sky-200 dark:border-sky-700 rounded"
                 title="BAST Document Preview"
               ></iframe>
             </div>
           </div>
         </div>
       )}
+
+      {/* Edit Pengajuan Modal/Dialog */}
+      {isEditPengajuanModalOpen && currentEditingPengajuan && (
+        <Dialog open={isEditPengajuanModalOpen} onOpenChange={setIsEditPengajuanModalOpen}>
+          <DialogContent className="sm:max-w-[500px] bg-white dark:bg-slate-800">
+            <DialogHeader>
+              <DialogTitle className="text-sky-700 dark:text-sky-300">Edit Pengajuan - {currentEditingPengajuan.nama_kub}</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSaveEditedPengajuan}>
+              <div className="grid gap-4 py-4">
+                <div>
+                  <Label htmlFor="tanggal_pengajuan_edit" className="text-slate-700 dark:text-slate-300">Tanggal Pengajuan</Label>
+                  <Input
+                    id="tanggal_pengajuan_edit"
+                    name="tanggal_pengajuan"
+                    type="date"
+                    value={editPengajuanFormData.tanggal_pengajuan}
+                    onChange={handleEditPengajuanInputChange}
+                    className="mt-1 bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 focus:ring-sky-500 focus:border-sky-500"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="wilayah_penangkapan_edit" className="text-slate-700 dark:text-slate-300">Wilayah Penangkapan</Label>
+                  <select
+                    id="wilayah_penangkapan_edit"
+                    name="wilayah_penangkapan"
+                    value={editPengajuanFormData.wilayah_penangkapan}
+                    onChange={handleEditPengajuanInputChange}
+                    className="w-full mt-1 px-3 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 rounded-lg text-sm focus:ring-sky-500 focus:border-sky-500"
+                  >
+                    <option value="">Pilih Wilayah</option>
+                    <option value="perairan_umum_daratan">Perairan Umum Daratan</option>
+                    <option value="laut">Laut</option>
+                  </select>
+                </div>
+                <div>
+                  <Label htmlFor="alamat_kub_edit" className="text-slate-700 dark:text-slate-300">Alamat KUB</Label>
+                  <Input // Atau bisa menggunakan <textarea> jika alamatnya panjang
+                    id="alamat_kub_edit"
+                    name="alamat_kub"
+                    type="text"
+                    value={editPengajuanFormData.alamat_kub}
+                    onChange={handleEditPengajuanInputChange}
+                    className="mt-1 bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 focus:ring-sky-500 focus:border-sky-500"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="kabupaten_kota_edit" className="text-slate-700 dark:text-slate-300">Kabupaten/Kota KUB</Label>
+                  <select
+                    id="kabupaten_kota_edit"
+                    name="kabupaten_kota"
+                    value={editPengajuanFormData.kabupaten_kota}
+                    onChange={handleEditPengajuanInputChange}
+                    className="w-full mt-1 px-3 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 rounded-lg text-sm focus:ring-sky-500 focus:border-sky-500"
+                  >
+                    <option value="">Pilih Kabupaten/Kota</option>
+                    {availableKabupatenKota.map(kab => <option key={kab} value={kab}>{kab}</option>)}
+                  </select>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setIsEditPengajuanModalOpen(false)} className="border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
+                  Batal
+                </Button>
+                <Button type="submit" className="bg-sky-600 hover:bg-sky-700 dark:bg-sky-500 dark:hover:bg-sky-600 text-white">
+                  Simpan Perubahan
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
+
+
+      {/* Footer - Ditambahkan untuk konsistensi */}
+      <footer className="py-4 text-center text-sm text-slate-500 dark:text-slate-400 border-t border-sky-200 dark:border-sky-700">
+        
+      </footer>
     </div>
   );
 }

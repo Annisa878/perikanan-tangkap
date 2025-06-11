@@ -20,8 +20,8 @@ const SubmissionStatusChartUser: React.FC<SubmissionStatusChartUserProps> = ({ d
   return (
     <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6">
       <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mb-6">Ringkasan Status Pengajuan Anda</h2>
-      <ResponsiveContainer width="100%" height={350}>
-        <BarChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+      <ResponsiveContainer width="100%" height={200}>
+        <BarChart data={data} margin={{ top: 5, right: 25, left: 0, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} className="dark:stroke-slate-700" />
           <XAxis dataKey="name" tick={{ fill: 'var(--color-text-secondary, #64748b)' }} className="dark:text-slate-400" />
           <YAxis allowDecimals={false} tick={{ fill: 'var(--color-text-secondary, #64748b)' }} className="dark:text-slate-400" />

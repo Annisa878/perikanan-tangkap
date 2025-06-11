@@ -2,22 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/utils/supabase/client";
-
-export enum Bulan {
-    Januari = "Januari",
-    Februari = "Februari",
-    Maret = "Maret",
-    April = "April",
-    Mei = "Mei",
-    Juni = "Juni",
-    Juli = "Juli",
-    Agustus = "Agustus",
-    September = "September",
-    Oktober = "Oktober",
-    November = "November",
-    Desember = "Desember"
-}
+import { createClient } from "@/utils/supabase/client";import { Bulan } from "@/app/lib/enums"; // Import Bulan enum
+import { Ship } from "lucide-react"; // Import Ship icon
 
 interface Kelompok {
     id_kelompok: string;
@@ -361,24 +347,24 @@ export default function LaporanPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-sky-100 to-cyan-100 dark:from-slate-900 dark:to-sky-800 p-4 md:p-8">
-            <div className="max-w-4xl mx-auto">
-                {/* Header Title - Mirip dengan Form Pengajuan Bantuan */}
-                <div className="relative text-center mb-10 md:mb-12">
-                    <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-3/4 md:w-1/2 h-20 md:h-24 bg-sky-500/10 dark:bg-sky-400/10 rounded-full blur-2xl transform -skew-y-3"></div>
-                    </div>
-                    <div className="relative inline-block px-6 py-3">
-                        <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-sky-600 via-cyan-500 to-teal-500 bg-clip-text text-transparent">
+        // Mengadopsi layout utama dan latar belakang dari halaman user dashboard
+        <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-100 to-cyan-200 dark:from-blue-900 dark:to-cyan-950 text-slate-700 dark:text-slate-200">
+            {/* Header disesuaikan dengan gaya admin/user dashboard */}
+            <header className="bg-white/70 dark:bg-sky-950/70 backdrop-blur-md py-4 shadow-md sticky top-0 z-40 border-b border-sky-300/70 dark:border-sky-800/70">
+                <div className="container mx-auto px-4 md:px-6">
+                    <div className="text-xl md:text-2xl font-semibold flex items-center text-sky-700 dark:text-sky-300">
+                        <Ship className="mr-2.5 h-6 w-6 text-cyan-600 dark:text-cyan-400" />
                         Form Laporan Monitoring
-                        </h1>
                     </div>
                 </div>
+            </header>
 
-                {/* Card Form Utama */}
-                <div className="w-full bg-white dark:bg-slate-800 shadow-xl rounded-xl overflow-hidden">
-                    <form onSubmit={handleSubmit} className="p-6 md:p-8 space-y-6">
-                        {/* Informasi Pelapor */}
+            {/* Main Content */}
+            <main className="container mx-auto py-6 md:py-8 px-4 md:px-6 flex-1">
+                <div className="max-w-4xl mx-auto"> {/* Container to constrain form width if needed */}
+                    <div className="w-full bg-blue-50 dark:bg-slate-800 shadow-xl rounded-xl overflow-hidden">
+                        <form onSubmit={handleSubmit} className="p-6 md:p-8 space-y-6">
+                            {/* Informasi Pelapor */}
                     <div className="p-4 border border-sky-200 dark:border-sky-700 rounded-lg bg-sky-50 dark:bg-slate-700/30">
                         <h2 className="text-lg font-semibold text-sky-700 dark:text-sky-300 mb-4">Informasi Pelapor</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -599,8 +585,13 @@ export default function LaporanPage() {
                         </div>
                         </div>
                     </form>
+                    </div> {/* Closing Card Form Utama */}
                 </div>
-            </div>
+            </main>
+            {/* Footer disesuaikan dengan gaya admin/user dashboard */}
+            <footer className="py-4 text-center text-sm text-slate-500 dark:text-slate-400 border-t border-sky-200 dark:border-sky-700">
+                
+            </footer>
         </div>
     );
 }

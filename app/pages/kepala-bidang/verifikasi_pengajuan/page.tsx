@@ -451,25 +451,32 @@ export default function VerifikasiPengajuan() {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-sky-50 via-cyan-50 to-teal-50 dark:from-slate-900 dark:via-sky-900 dark:to-teal-900 p-4 md:p-8">
-      <div className="space-y-6 md:space-y-8">
-        <Card className="bg-gradient-to-r from-sky-600 via-cyan-500 to-teal-500 text-white shadow-lg">
-          <CardHeader className="py-4 px-6"> {/* Adjusted padding */}
-            <CardTitle className="text-xl md:text-2xl font-bold text-center md:text-left"> {/* Reduced font size */}
-              Verifikasi Pengajuan Bantuan
-            </CardTitle>
-          </CardHeader>
-        </Card>
+    // Applied main background gradient and layout from dashboard page
+    <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-100 to-cyan-200 dark:from-blue-900 dark:to-cyan-950 text-slate-700 dark:text-slate-200">
+      {/* Header - Consistent with dashboard */}
+      <header className="bg-white/70 dark:bg-sky-950/70 backdrop-blur-md py-4 shadow-md sticky top-0 z-40 border-b border-sky-300/70 dark:border-sky-800/70">
+        <div className="container mx-auto px-4 md:px-6">
+          <div className="text-xl md:text-2xl font-semibold flex items-center text-sky-700 dark:text-sky-300">
+            <Ship className="mr-2.5 h-6 w-6 text-cyan-600 dark:text-cyan-400" />
+            Verifikasi Pengajuan Bantuan
+          </div>
+        </div>
+      </header>
 
-        <Card className="w-full bg-white dark:bg-slate-800 shadow-xl border border-sky-200 dark:border-slate-700">
-          <CardHeader className="border-b border-slate-200 dark:border-slate-700">
+      {/* Main Content */}
+      <main className="container mx-auto py-6 md:py-8 px-4 md:px-6 flex-1 space-y-6 md:space-y-8">
+        {/* Page Title is now in the header */}
+
+        {/* Main Card for Daftar Pengajuan - Styling consistent with dashboard content cards */}
+        <Card className="w-full bg-white dark:bg-sky-900 shadow-xl border border-sky-200 dark:border-sky-700">
+          <CardHeader className="border-b border-slate-200 dark:border-sky-700">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <CardTitle className="text-xl text-sky-700 dark:text-sky-300 shrink-0">Daftar Pengajuan</CardTitle>
+              <CardTitle className="text-lg md:text-xl text-sky-700 dark:text-sky-300 shrink-0">Daftar Pengajuan</CardTitle> {/* Adjusted title size slightly */}
               <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                 <div className="w-full sm:w-auto sm:min-w-[200px]">
                   <label htmlFor="kabupatenFilter" className="sr-only">Filter Kabupaten/Kota:</label>
                   <Select value={filterKabupatenKota} onValueChange={setFilterKabupatenKota}>
-                    <SelectTrigger id="kabupatenFilter" className="w-full bg-slate-50 dark:bg-slate-700 border-slate-300 dark:border-slate-600 focus:ring-sky-500">
+                    <SelectTrigger id="kabupatenFilter" className="w-full bg-sky-50 dark:bg-sky-800/60 border-slate-300 dark:border-slate-600 focus:ring-sky-500">
                       <SelectValue placeholder="Filter Kabupaten/Kota..." />
                     </SelectTrigger>
                     <SelectContent>
@@ -489,7 +496,7 @@ export default function VerifikasiPengajuan() {
                     id="statusFilter"
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 rounded-md text-sm text-slate-700 dark:text-slate-200 focus:ring-sky-500 focus:border-sky-500"
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 bg-sky-50 dark:bg-sky-800/60 rounded-md text-sm text-slate-700 dark:text-slate-200 focus:ring-sky-500 focus:border-sky-500"
                   >
                     <option value="all">Semua Status</option>
                     <option value="Disetujui Sepenuhnya">Disetujui Sepenuhnya</option>
@@ -515,26 +522,25 @@ export default function VerifikasiPengajuan() {
             ) : (
               <div className="overflow-x-auto">
                 <Table>
-                  <TableHeader className="bg-slate-50 dark:bg-slate-700/50">
+                  <TableHeader className="bg-sky-100 dark:bg-sky-700/50">
                     <TableRow>
-                      <TableHead className="px-3 py-3 text-xs font-medium text-slate-600 dark:text-slate-300 uppercase">No</TableHead>
-                      <TableHead className="px-3 py-3 text-xs font-medium text-slate-600 dark:text-slate-300 uppercase">Nama KUB</TableHead>
-                      <TableHead className="px-3 py-3 text-xs font-medium text-slate-600 dark:text-slate-300 uppercase">Wilayah</TableHead>
-                      <TableHead className="px-3 py-3 text-xs font-medium text-slate-600 dark:text-slate-300 uppercase">Tgl. Pengajuan</TableHead>
-                      <TableHead className="px-3 py-3 text-xs font-medium text-slate-600 dark:text-slate-300 uppercase text-center">Status Kabid</TableHead>
-                      <TableHead className="w-[50px] px-3 py-3 text-xs font-medium text-slate-600 dark:text-slate-300 uppercase text-center">Aksi</TableHead>
+                      <TableHead className="px-3 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase">No</TableHead>
+                      <TableHead className="px-3 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase">Nama KUB</TableHead>
+                      <TableHead className="px-3 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase">Wilayah</TableHead>
+                      <TableHead className="px-3 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase">Tgl. Pengajuan</TableHead>
+                      <TableHead className="px-3 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase text-center">Status Kabid</TableHead>
+                      <TableHead className="w-[50px] px-3 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase text-center">Aksi</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody className="divide-y divide-slate-200 dark:divide-slate-700">
                     {filteredPengajuan.map((item, index) => (
                       <React.Fragment key={item.id_pengajuan}>
-                        <TableRow className={`hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors ${expandedRowId === item.id_pengajuan ? 'bg-sky-50 dark:bg-sky-700/20' : ''}`}>
+                        <TableRow className={`hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors ${expandedRowId === item.id_pengajuan ? 'bg-sky-50 dark:bg-sky-700/20' : ''}`}
+                        >
                           <TableCell className="px-3 py-3 text-sm text-slate-700 dark:text-slate-200">{index + 1}</TableCell>
                           <TableCell className="px-3 py-3 text-sm text-slate-700 dark:text-slate-200 font-medium">{item.nama_kub}</TableCell>
                           <TableCell className="px-3 py-3 text-sm text-slate-700 dark:text-slate-200">{item.wilayah_penangkapan === 'perairan_umum_daratan' ? 'Perairan Daratan' : 'Laut'}</TableCell>
-                          <TableCell className="px-3 py-3 text-sm text-slate-700 dark:text-slate-200">
-                            {new Date(item.tanggal_pengajuan).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
-                          </TableCell>
+                          <TableCell className="px-3 py-3 text-sm text-slate-700 dark:text-slate-200">{new Date(item.tanggal_pengajuan).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</TableCell>
                           <TableCell className="px-3 py-3 text-center">
                             <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${getStatusBadgeColor(item.status_verifikasi_kabid)}`}>
                               {item.status_verifikasi_kabid || 'Belum Diverifikasi'}
@@ -724,7 +730,7 @@ export default function VerifikasiPengajuan() {
                       value={catatan}
                       onChange={(e) => setCatatan(e.target.value)}
                       placeholder="Tambahkan catatan verifikasi (opsional)..."
-                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md text-sm bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 focus:ring-indigo-500 focus:border-indigo-500"
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md text-sm bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 focus:ring-sky-500 focus:border-sky-500"
                       rows={4}
                                     ></textarea>
                                   </div>
@@ -733,7 +739,7 @@ export default function VerifikasiPengajuan() {
                                     <Button
                                       onClick={saveVerificationDecision}
                                       disabled={isDetailLoading}
-                                      className="px-6 py-2.5 bg-gradient-to-r from-sky-600 to-cyan-500 text-white font-semibold rounded-lg shadow-md hover:from-sky-700 hover:to-cyan-600 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-offset-2 dark:ring-offset-slate-800 transition-all"
+                                      className="px-6 py-2.5 bg-gradient-to-r from-sky-700 to-cyan-600 text-white font-semibold rounded-lg shadow-md hover:from-sky-800 hover:to-cyan-700 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-offset-2 dark:ring-offset-slate-800 transition-all"
                                     >
                                       {isDetailLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                       Simpan Keputusan Verifikasi
@@ -780,7 +786,8 @@ export default function VerifikasiPengajuan() {
           </div>
         </div>
       )}
-      </div>
+      </main>
+
     </div>
   );
 }

@@ -1,7 +1,8 @@
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
+import React from "react"; // Import React
 import Link from "next/link";
-import { FilePlus2, ClipboardList } from "lucide-react"; // Consolidated imports
+import { FilePlus2, ClipboardList, Ship } from "lucide-react"; // Consolidated imports, Added Ship
 import SubmissionStatusChartUser from "@/components/charts/SubmissionStatusChartUser"; // Import the chart component
 
 type ChartDataItemUser = { name: string; jumlah: number; fill: string };
@@ -141,28 +142,33 @@ export default async function Dashboard() {
     const chartDataMonitoringHistory = processMonthlyTrendData(monitoringHistoryRaw, '#2dd4bf'); // teal-400
   
     return (
-      <div className="flex flex-col min-h-screen bg-gradient-to-b from-sky-100 to-cyan-100 dark:from-slate-800 dark:to-sky-900">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-teal-500 via-cyan-400 to-sky-300 dark:from-teal-700 dark:via-cyan-600 dark:to-sky-500 py-8 px-4 shadow-lg">
-          {/* Konten header bisa disesuaikan atau dikosongkan jika tidak ada judul lain */}
-          <h1 className="text-3xl md:text-4xl font-bold text-white">Dashboard Pengguna</h1>
-        </div>
-  
+      // Mengadopsi layout utama dan latar belakang dari halaman admin
+      <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-100 to-cyan-200 dark:from-blue-900 dark:to-cyan-950 text-slate-700 dark:text-slate-200">
+        {/* Header disesuaikan dengan gaya admin */}
+        <header className="bg-white/70 dark:bg-sky-950/70 backdrop-blur-md py-4 shadow-md sticky top-0 z-40 border-b border-sky-300/70 dark:border-sky-800/70">
+          <div className="container mx-auto px-4 md:px-6">
+            <div className="text-xl md:text-2xl font-semibold flex items-center text-sky-700 dark:text-sky-300">
+              <Ship className="mr-2.5 h-6 w-6 text-cyan-600 dark:text-cyan-400" />
+              Dashboard Pengguna
+            </div>
+          </div>
+        </header>
+        
         {/* Main Content */}
-        <div className="container mx-auto py-8 px-4 flex-grow">
+        <main className="container mx-auto py-6 md:py-8 px-4 md:px-6 flex-1">
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <StatCardUser
               title="Total Pengajuan Bantuan"
               value={totalPengajuanBantuan || 0}
-              icon={<FilePlus2 className="w-10 h-10 text-sky-600 dark:text-sky-400" />}
-              bgColor="bg-sky-100 dark:bg-sky-800/50"
+              icon={<FilePlus2 className="w-6 h-6 text-sky-600 dark:text-sky-400" />}
+              iconBgColor="bg-sky-100 dark:bg-sky-700/30"
             />
             <StatCardUser
               title="Total Laporan Monitoring"
               value={totalLaporanMonitoring || 0}
-              icon={<ClipboardList className="w-10 h-10 text-teal-600 dark:text-teal-400" />}
-              bgColor="bg-teal-100 dark:bg-teal-800/50"
+              icon={<ClipboardList className="w-6 h-6 text-teal-600 dark:text-teal-400" />}
+              iconBgColor="bg-teal-100 dark:bg-teal-700/30"
             />
           </div>
   
@@ -171,14 +177,14 @@ export default async function Dashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
               {/* Chart Section - Riwayat Pengajuan (Bulanan) */}
               {chartDataPengajuanHistory.length > 0 && (
-                <div className="p-6 bg-white dark:bg-slate-800 rounded-xl shadow-lg">
+                <div className="p-6 bg-blue-50 dark:bg-slate-800 rounded-xl shadow-lg">
                   <SubmissionStatusChartUser data={chartDataPengajuanHistory} />
                 </div>
               )}
 
               {/* Chart Section - Riwayat Laporan Monitoring (Bulanan) */}
               {chartDataMonitoringHistory.length > 0 && (
-                <div className="p-6 bg-white dark:bg-slate-800 rounded-xl shadow-lg">
+                <div className="p-6 bg-blue-50 dark:bg-slate-800 rounded-xl shadow-lg">
                   <SubmissionStatusChartUser data={chartDataMonitoringHistory} />
                 </div>
               )}
@@ -187,25 +193,36 @@ export default async function Dashboard() {
   
           {/* Bagian Action Cards telah dihapus */}
           {/* Anda bisa menambahkan konten lain di sini jika diperlukan */}
-        </div>
-    </div>
+        </main>
+        {/* Footer disesuaikan dengan gaya admin */}
+        <footer className="py-4 text-center text-sm text-slate-500 dark:text-slate-400 border-t border-sky-200 dark:border-sky-700">
+          {/* Konten footer bisa ditambahkan di sini jika perlu */}
+        </footer>
+      </div>
     );
   }
   
   // StatCardUser component for displaying individual stats
-  const StatCardUser = ({ title, value, icon, bgColor }: { title: string; value: string | number; icon: React.ReactNode; bgColor: string }) => (
-    <div className={`rounded-xl shadow-lg p-6 flex items-center space-x-6 ${bgColor}`}>
-      <div className="flex-shrink-0">
-        {icon}
+  // Disesuaikan agar lebih mirip dengan StatCard di admin/page.tsx
+  const StatCardUser = ({ title, value, icon, iconBgColor }: { title: string; value: string | number; icon: React.ReactNode; iconBgColor: string; }) => (
+    <div className="p-3 rounded-lg shadow-md bg-blue-50 dark:bg-slate-800 h-full flex flex-col justify-between transition-all duration-300 ease-in-out hover:shadow-lg hover:scale-[1.03]"> {/* Padding, shadow, scale lebih kecil */}
+      <div className="flex items-start justify-between mb-1.5"> {/* Margin bawah dikurangi */}
+        <div className={`p-1 rounded-md ${iconBgColor}`}> {/* Padding ikon dikurangi, rounded-md */}
+          {/* Mengkloning ikon untuk menyesuaikan ukuran dan mempertahankan kelas aslinya (termasuk warna) */}
+          {React.isValidElement(icon) ? React.cloneElement(icon as React.ReactElement<any>, { 
+            className: `h-3.5 w-3.5 ${(icon as React.ReactElement<any>).props.className || ''} transition-transform duration-300`  // Ukuran ikon lebih kecil
+          }) : icon}
+        </div>
       </div>
       <div>
-        <p className="text-sm text-slate-600 dark:text-slate-400 font-medium">{title}</p>
-        <p className="text-3xl font-bold text-slate-800 dark:text-slate-100">{value}</p>
+        <h3 className="mt-0.5 text-sm md:text-base font-bold text-slate-700 dark:text-slate-50">{value}</h3> {/* Margin atas dan font value lebih kecil */}
+        <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-300 truncate" title={title}>{title}</p> {/* Font title lebih kecil */}
       </div>
     </div>
   );
   
-  
+  // Komponen DashboardCard tidak digunakan dalam render utama saat ini, jadi tidak diubah.
+  // Jika akan digunakan di masa depan, stylingnya juga perlu disesuaikan agar konsisten.
   const DashboardCard = ({ title, description, link, buttonText, buttonStyle }: {
     title: string;
     description: string;
@@ -213,7 +230,7 @@ export default async function Dashboard() {
     buttonText: string;
     buttonStyle: string;
   }) => ( // Using the more styled version
-    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6 flex flex-col justify-between transition-all hover:shadow-2xl hover:-translate-y-1">
+    <div className="bg-blue-50 dark:bg-slate-800 rounded-xl shadow-lg p-6 flex flex-col justify-between transition-all hover:shadow-2xl hover:-translate-y-1">
       <div>
         <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mb-2">{title}</h2>
         <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">{description}</p>

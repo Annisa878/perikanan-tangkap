@@ -9,7 +9,7 @@ import {
   CheckCircle,
   // Clock, // Dihapus karena tidak digunakan lagi
   // Clock, // Dihapus karena tidak digunakan lagi
-  BarChart3, Loader2, // Ditambahkan Loader2
+  BarChart3, Loader2, Ship, // Ditambahkan Loader2 dan Ship
   AlertCircle,
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -19,47 +19,20 @@ interface DashboardStats {
   pengajuanDisetujuiKabid: number;
   totalLaporanMonitoring: number;
 }
-interface MonthlyData {
-  month: string;
-  jumlah: number;
+interface SummaryChartData {
+  name: string;
+  Jumlah: number; // Using "Jumlah" to be consistent with TrendChart's dataKey
 }
 
+
 const KABID_APPROVED_MONITORING_STATUS = 'Disetujui'; // Status yang sama dengan di halaman laporan-akhir
-
-// Fungsi helper untuk memproses data menjadi tren bulanan
-const processDataForMonthlyTrend = (items: { created_at: string }[] | null | undefined): MonthlyData[] => {
-  if (!items || items.length === 0) return [];
-  const countsByMonthYear: Record<string, number> = {};
-
-  items.forEach(item => {
-    if (item.created_at) { // Tambahkan pemeriksaan null/undefined
-      const date = new Date(item.created_at);
-      const year = date.getFullYear();
-      const month = date.getMonth(); // 0-11
-      const key = `${year}-${String(month).padStart(2, '0')}`; // Format YYYY-MM untuk sorting
-      countsByMonthYear[key] = (countsByMonthYear[key] || 0) + 1;
-    }
-  });
-
-  const monthLabels = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Ags", "Sep", "Okt", "Nov", "Des"];
-  return Object.keys(countsByMonthYear)
-    .sort() // Sortir berdasarkan YYYY-MM
-    .map(key => {
-      const [year, monthNum] = key.split('-');
-      return {
-        month: `${monthLabels[parseInt(monthNum, 10)]} ${year}`,
-        jumlah: countsByMonthYear[key],
-      };
-    });
-};
 
 export default function KepalaDinasDashboardPage() {
   const supabase = createClient();
   const [stats, setStats] = useState<DashboardStats | null>(null); // Tetap null hingga data dimuat
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [pengajuanTrendData, setPengajuanTrendData] = useState<MonthlyData[]>([]);
-  const [monitoringTrendData, setMonitoringTrendData] = useState<MonthlyData[]>([]);
+  // Removed trend data states: pengajuanTrendData, monitoringTrendData
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -104,8 +77,6 @@ export default function KepalaDinasDashboardPage() {
           disetujuiSepenuhnyaRes,
           disetujuiSebagianRes,
           laporanMonitoringRes,
-          pengajuanTrendRawRes,
-          monitoringTrendRawRes,
         ] = await Promise.all([
           supabase
             .from('pengajuan')
@@ -124,14 +95,6 @@ export default function KepalaDinasDashboardPage() {
             .from('monitoring')
             .select('id', { count: 'exact', head: true })
             .eq('status_verifikasi_kabid', KABID_APPROVED_MONITORING_STATUS), // Tambahkan filter ini jika ingin sinkron
-          // Queries for chart data
-          supabase
-            .from('pengajuan')
-            .select('created_at')
-            .in('status_verifikasi_kabid', ['Disetujui Sepenuhnya', 'Disetujui Sebagian']),
-          supabase
-            .from('monitoring')
-            .select('created_at'),
         ]);
 
         // Consolidate error checking after all promises
@@ -140,8 +103,6 @@ export default function KepalaDinasDashboardPage() {
           disetujuiSepenuhnyaRes.error, 
           disetujuiSebagianRes.error, 
           laporanMonitoringRes.error,
-          pengajuanTrendRawRes.error,
-          monitoringTrendRawRes.error
         ].filter(Boolean);
 
         if (allErrors.length > 0) {
@@ -155,13 +116,6 @@ export default function KepalaDinasDashboardPage() {
           totalLaporanMonitoring: laporanMonitoringRes.count ?? 0,
         });
 
-        // Process and set chart data
-        const pengajuanDataForChart = processDataForMonthlyTrend(pengajuanTrendRawRes.data);
-        const monitoringDataForChart = processDataForMonthlyTrend(monitoringTrendRawRes.data);
-        
-        setPengajuanTrendData(pengajuanDataForChart);
-        setMonitoringTrendData(monitoringDataForChart);
-
       } catch (e: any) {
         console.error("Error in fetchDashboardData:", e);
         setError(e.message || "Gagal memuat data dashboard.");
@@ -173,68 +127,67 @@ export default function KepalaDinasDashboardPage() {
     fetchDashboardData();
   }, [supabase]);
 
-  const StatCard = ({ title, value, icon, iconBgColor, iconColor, link }: {
+  // StatCard component definition updated to match kepala-bidang/page.tsx
+  interface StatCardProps {
     title: string;
     value: string | number;
-    icon: React.ReactElement<React.SVGAttributes<SVGSVGElement>>;
-    iconBgColor: string;
-    iconColor: string;
-    link?: string;
-  }) => {
-    const cardContent = (
-      <div className="bg-white dark:bg-slate-800/70 p-4 md:p-5 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 ease-in-out flex items-center space-x-4 border border-slate-200 dark:border-slate-700/50">
-        <div className={`p-3 rounded-full ${iconBgColor}`}>
-          {React.cloneElement(icon, { className: `h-6 w-6 md:h-7 md:w-7 ${iconColor}` })}
-        </div>
-        <div>
-          <p className="text-sm text-slate-500 dark:text-slate-400 font-medium truncate" title={title}>{title}</p>
-          <p className="text-2xl md:text-3xl font-bold text-slate-800 dark:text-white">{value}</p>
+    icon: React.ReactElement<React.SVGProps<SVGSVGElement> & { className?: string }>;
+    bgColorClass: string; // Changed from iconBgColor
+    textColorClass: string; // Changed from iconColor
+  }
+  const StatCard: React.FC<StatCardProps> = ({ title, value, icon, bgColorClass, textColorClass }) => (
+    <div className="p-4 rounded-xl shadow-lg bg-blue-50 dark:bg-slate-800 h-full flex flex-col justify-between transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1"> {/* Changed hover effect slightly */}
+      <div className="flex items-start justify-between mb-2">
+        <div className={`p-2 rounded-lg ${bgColorClass} bg-opacity-20 dark:bg-opacity-25`}>
+          {React.cloneElement(icon, { className: `h-4 w-4 md:h-5 md:w-5 ${textColorClass} transition-transform duration-300` })}
         </div>
       </div>
-    );
+      <div>
+        <h3 className="mt-1 text-lg md:text-xl font-bold text-slate-700 dark:text-slate-50">{value}</h3>
+        <p className="text-xs text-slate-500 dark:text-slate-300 truncate" title={title}>{title}</p>
+      </div>
+    </div>
+  );
 
-    return link ? (
-      <Link href={link} className="focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900 rounded-xl">{cardContent}</Link>
-    ) : cardContent;
-  };
-
-  // Komponen untuk grafik tren
-  const TrendChart = ({ data, title, barColor, dataKey }: { data: MonthlyData[]; title: string; barColor: string; dataKey: string; }) => {
-    if (!data || data.length === 0) {
+  // Komponen untuk grafik ringkasan total
+  const SummaryTotalChart = ({ data, title, barColor, link }: {
+    data: SummaryChartData[];
+    title: string;
+    barColor: string;
+    link?: string;
+  }) => {
+    if (!data || data.length === 0 || data[0].Jumlah === 0) {
       return (
         <div className="text-center text-slate-500 dark:text-slate-400 h-full flex flex-col justify-center items-center p-6 md:p-8">
           <BarChart3 className="h-12 w-12 md:h-16 md:w-16 text-slate-400 dark:text-slate-500 mb-4" />
-          <p className="text-sm font-medium text-slate-600 dark:text-slate-300">Data Belum Cukup</p>
-          <p className="text-xs text-slate-400 dark:text-slate-500">untuk menampilkan {title.toLowerCase()}.</p>
+          <p className="text-sm font-medium text-slate-600 dark:text-slate-300">Data Kosong</p>
+          <p className="text-xs text-slate-400 dark:text-slate-500">
+            {title.toLowerCase()} belum memiliki data. {link && <Link href={link} className="text-sky-500 hover:underline">Lihat detail</Link>}
+          </p>
         </div>
       );
     }
-
     return (
-      <div className="h-full flex flex-col"> {/* Chart takes full height of its parent */}
-        <h3 className="text-sm md:text-base font-semibold text-slate-700 dark:text-slate-200 mb-3 text-center shrink-0">{title}</h3>
-        <div className="flex-1 min-h-0"> {/* This div allows ResponsiveContainer to expand */}
+      <div className="h-full flex flex-col">
+        <h3 className="text-sm md:text-base font-semibold text-slate-700 dark:text-slate-200 mb-4 text-center shrink-0 border-b pb-3 border-slate-200 dark:border-slate-700">{title}</h3> {/* Added border */}
+        <div className="flex-1 min-h-0">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+            {/* Changed layout to default (vertical bars) and adjusted margins */}
+            <BarChart data={data} margin={{ top: 5, right: 20, left: -20, bottom: 20 }}>
               <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} className="dark:stroke-slate-700 stroke-slate-200" />
-              <XAxis dataKey="month" fontSize={10} interval={0} angle={-35} textAnchor="end" height={50} tick={{ fill: 'currentColor' }} className="text-slate-500 dark:text-slate-400" tickMargin={5} />
-              <YAxis allowDecimals={false} fontSize={10} tick={{ fill: 'currentColor' }} className="text-slate-500 dark:text-slate-400" tickMargin={5}/>
+              <XAxis dataKey="name" type="category" fontSize={10} tick={{ fill: 'currentColor' }} className="text-slate-500 dark:text-slate-400" interval={0} angle={-35} textAnchor="end" height={50} />
+              <YAxis type="number" allowDecimals={false} fontSize={10} tick={{ fill: 'currentColor' }} className="text-slate-500 dark:text-slate-400" />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.98)',
-                  borderRadius: '0.5rem',
-                  fontSize: '0.875rem',
-                  padding: '0.5rem 0.75rem',
-                  borderColor: 'rgba(203, 213, 225, 0.5)',
-                  boxShadow: '0 8px 16px -4px rgba(0,0,0,0.1), 0 4px 8px -4px rgba(0,0,0,0.07)',
-                  color: '#334155'
+                  backgroundColor: 'rgba(255, 255, 255, 0.98)', borderRadius: '0.5rem', fontSize: '0.875rem',
+                  padding: '0.5rem 0.75rem', borderColor: 'rgba(203, 213, 225, 0.5)',
+                  boxShadow: '0 8px 16px -4px rgba(0,0,0,0.1), 0 4px 8px -4px rgba(0,0,0,0.07)', color: '#334155'
                 }}
-                labelStyle={{ fontWeight: '600', color: '#1e293b', fontSize: '0.9rem', marginBottom: '0.25rem' }}
+                labelStyle={{ fontWeight: '600', color: '#1e293b', fontSize: '0.9rem', marginBottom: '0.25rem' }} // Show label for category
                 itemStyle={{ fontSize: '0.875rem', color: '#475569' }}
                 cursor={{ fill: 'rgba(148, 163, 184, 0.1)' }}
               />
-              <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: '0.8rem', paddingBottom: '10px' }} />
-              <Bar dataKey={dataKey} fill={barColor} name="Jumlah" radius={[4, 4, 0, 0]} barSize={16} />
+              <Bar dataKey="Jumlah" fill={barColor} name="Total" radius={[4, 4, 0, 0]} barSize={35} /> {/* Adjusted radius and barSize */}
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -242,15 +195,28 @@ export default function KepalaDinasDashboardPage() {
     );
   };
 
+  // Helper function to get current month and year string
+  const getCurrentMonthYearString = () => {
+    const now = new Date();
+    const monthName = now.toLocaleString('id-ID', { month: 'long' });
+    return `${monthName} ${now.getFullYear()}`;
+  };
   return (
-    <div className="container mx-auto p-3 md:p-4 bg-sky-50 dark:bg-slate-900 h-screen overflow-y-auto flex flex-col">
-      <header className="mb-4 md:mb-6 shrink-0">
-        <h1 className="text-2xl md:text-3xl font-bold text-slate-800 dark:text-slate-100 flex items-center">
-          <LayoutDashboard className="mr-2.5 h-6 w-6 md:h-7 md:w-7 text-sky-600 dark:text-sky-400" />
-          Dashboard Kepala Dinas
-        </h1>
+    // Applied main background gradient and layout from kepala-bidang page
+    <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-100 to-cyan-200 dark:from-blue-900 dark:to-cyan-950 text-slate-700 dark:text-slate-200">
+      {/* Header - Consistent with kepala-bidang page */}
+      <header className="bg-white/70 dark:bg-sky-950/70 backdrop-blur-md py-4 shadow-md sticky top-0 z-40 border-b border-sky-300/70 dark:border-sky-800/70">
+        <div className="container mx-auto px-4 md:px-6">
+          <div className="text-xl md:text-2xl font-semibold flex items-center text-sky-700 dark:text-sky-300">
+            <Ship className="mr-2.5 h-6 w-6 text-cyan-600 dark:text-cyan-400" />
+            Dashboard Kepala Dinas
+          </div>
+        </div>
       </header>
 
+      {/* Main Content */}
+      <main className="container mx-auto py-6 md:py-8 px-4 md:px-6 flex-1">
+        
       {isLoading && (
         <div className="flex-1 flex flex-col justify-center items-center text-slate-600 dark:text-slate-400">
           <Loader2 className="h-10 w-10 animate-spin text-sky-500 mb-3" />
@@ -273,60 +239,61 @@ export default function KepalaDinasDashboardPage() {
       {!isLoading && !error && stats ? (
         <>
           {/* Stats Cards */}
-          <section className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-5 mb-4 md:mb-6 shrink-0">
-            <StatCard
-              title="Total Pengajuan Telah Disetujui"
-              value={stats.pengajuanDisetujuiKabid}
-              icon={<CheckCircle />}
-              iconBgColor="bg-emerald-100 dark:bg-emerald-500/20"
-              iconColor="text-emerald-600 dark:text-emerald-400"
-              link="/kepala-dinas/laporan-pengajuan"
-            />
-            <StatCard
-              title="Total Laporan Monitoring Nelayan"
-              value={stats.totalLaporanMonitoring}
-              icon={<Users />}
-              iconBgColor="bg-sky-100 dark:bg-sky-500/20"
-              iconColor="text-sky-600 dark:text-sky-400"
-              link="/kepala-dinas/laporan-akhir"
-            />
+          <section className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8"> {/* Matched gap and margin */}
+            <Link href="/kepala-dinas/laporan-pengajuan" className="focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900 rounded-xl">
+              <StatCard
+                title="Total Pengajuan Telah Disetujui"
+                value={stats.pengajuanDisetujuiKabid}
+                icon={<CheckCircle />}
+                bgColorClass="bg-emerald-500" // Base color for icon background
+                textColorClass="text-emerald-600 dark:text-emerald-400"
+              />
+            </Link>
+            <Link href="/kepala-dinas/laporan-akhir" className="focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900 rounded-xl">
+              <StatCard
+                title="Total Laporan Monitoring Nelayan"
+                value={stats.totalLaporanMonitoring}
+                icon={<Users />}
+                bgColorClass="bg-sky-500" // Base color for icon background
+                textColorClass="text-sky-600 dark:text-sky-400"
+              />
+            </Link>
           </section>
           
-          {/* Charts/Visualizations - This section will take the remaining vertical space */}
-          <section className="flex-1 flex flex-col min-h-0"> {/* flex-1 and min-h-0 are crucial */}
-            <h2 className="text-lg md:text-xl font-semibold text-slate-700 dark:text-slate-200 mb-3 md:mb-4 shrink-0">Statistik Utama</h2>
-            
-            {/* This div will contain the actual chart components and must fill its parent */}
-            <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-5 min-h-0">
-                {(pengajuanTrendData.length > 0 || monitoringTrendData.length > 0) ? (
-                  <>
-                    {/* Each chart item wrapper needs to be flex-col for TrendChart to work */}
-                    <div className="bg-white dark:bg-slate-800/70 p-4 md:p-5 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700/50 flex flex-col">
-                      <TrendChart data={pengajuanTrendData} title="Tren Pengajuan Disetujui" barColor="#10b981" dataKey="jumlah" /> {/* emerald-500 */}
-                    </div>
-                    <div className="bg-white dark:bg-slate-800/70 p-4 md:p-5 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700/50 flex flex-col">
-                      <TrendChart data={monitoringTrendData} title="Tren Laporan Monitoring" barColor="#38bdf8" dataKey="jumlah" /> {/* sky-400 */}
-                    </div>
-                  </>
-                ) : (
-                  // Placeholder if no chart data, should span both columns in lg view and fill height
-                  <div className="lg:col-span-2 bg-white dark:bg-slate-800/70 p-4 md:p-6 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700/50 text-center flex flex-col justify-center items-center h-full min-h-[200px]">
-                      <BarChart3 className="h-12 w-12 md:h-16 md:w-16 text-slate-400 dark:text-slate-500 mx-auto mb-4" />
-                      <h3 className="text-base md:text-lg font-semibold text-slate-700 dark:text-slate-300">Belum Ada Data Grafik</h3>
-                      <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                          Data tren akan muncul di sini setelah ada aktivitas.
-                      </p>
-                  </div>
-                )}
+          {/* Summary Total Charts */}
+          <section className="mb-6 md:mb-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+              <Link href="/kepala-dinas/laporan-pengajuan" className="focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900 rounded-xl">
+                <section className="p-6 bg-blue-50 dark:bg-slate-800 rounded-xl shadow-lg flex flex-col h-[200px] md:h-[250px]">
+                  <SummaryTotalChart
+                    data={[{ name: getCurrentMonthYearString(), Jumlah: stats.pengajuanDisetujuiKabid }]}
+                    title="Total Pengajuan Disetujui"
+                    barColor="#10b981" // emerald-500
+                  />
+                </section>
+              </Link>
+              <Link href="/kepala-dinas/laporan-akhir" className="focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900 rounded-xl">
+                <section className="p-6 bg-blue-50 dark:bg-slate-800 rounded-xl shadow-lg flex flex-col h-[200px] md:h-[250px]">
+                  <SummaryTotalChart
+                    data={[{ name: getCurrentMonthYearString(), Jumlah: stats.totalLaporanMonitoring }]}
+                    title="Total Laporan Monitoring"
+                    barColor="#38bdf8" // sky-400
+                  />
+                </section>
+              </Link>
             </div>
           </section>
         </>
       ) : (
         // Fallback if stats is null but no error/loading (e.g., data fetch completed with no data)
-        !isLoading && !error && <div className="flex-1 flex justify-center items-center text-slate-500 dark:text-slate-400">
+        !isLoading && !error && <div className="flex-1 flex justify-center items-center text-slate-500 dark:text-slate-400 p-6">
             <p>Tidak ada data untuk ditampilkan.</p>
         </div>
       )}
+      </main>
+      {/* Footer - Consistent with kepala-bidang page */}
+      <footer className="py-4 text-center text-sm text-slate-500 dark:text-slate-400 border-t border-sky-200 dark:border-sky-700">
+      </footer>
     </div>
   );
 }

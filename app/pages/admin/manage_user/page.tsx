@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react"; // Added React for potential JSX needs, though not strictly required by this diff
 import { createClient } from "@/utils/supabase/client";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -24,10 +24,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Pencil, Trash2, UserPlus } from "lucide-react";
+import { Pencil, Trash2, UserPlus, Ship } from "lucide-react"; // Added Ship icon
 import { toast, ToastContainer } from "react-toastify";
+import { DomisiliEnum } from "@/app/lib/enums"; // Import DomisiliEnum
 import "react-toastify/dist/ReactToastify.css";
 
+// Define the User type
 type User = {
   id: string;
   email: string;
@@ -36,27 +38,6 @@ type User = {
   domisili: string;
   created_at: string;
 };
-
-// Enum for Domisili
-export const DomisiliEnum = [
-    "Kab. Banyuasin",
-    "Kab. Empat Lawang",
-    "Kab. Muara Enim",
-    "Kab. Musi Banyuasin",
-    "Kab. Musi Rawas",
-    "Kab. Musi Rawas Utara",
-    "Kab. Ogan Ilir",
-    "Kab. Ogan Komering Ilir",
-    "Kab. Ogan Komering Ulu",
-    "Kab. Ogan Komering Ulu Selatan",
-    "Kab. Ogan Komering Ulu Timur",
-    "Kab. Penukal Abab Lematang Ilir",
-    "Kota Lubuk Linggau",
-    "Kota Palembang",
-    "Kota Pagar Alam",
-    "Kota Prabumulih",
-    "Kota Lahat"
-  ] as const;
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -237,78 +218,93 @@ export default function AdminUsersPage() {
   };
 
   return (
-    <div className="p-8">
+    // Mengadopsi layout utama dan latar belakang dari halaman admin/page.tsx
+    <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-100 to-cyan-200 dark:from-blue-900 dark:to-cyan-950 text-slate-700 dark:text-slate-200">
       <ToastContainer position="top-right" autoClose={3000} />
+      {/* Header disesuaikan dengan gaya admin/page.tsx */}
+      <header className="bg-white/70 dark:bg-sky-950/70 backdrop-blur-md py-4 shadow-md sticky top-0 z-40 border-b border-sky-300/70 dark:border-sky-800/70">
+        <div className="container mx-auto px-4 md:px-6 flex justify-between items-center">
+          <div className="text-xl md:text-2xl font-semibold flex items-center text-sky-700 dark:text-sky-300">
+            <Ship className="mr-2.5 h-6 w-6 text-cyan-600 dark:text-cyan-400" />
+            Manajemen Pengguna
+          </div>
+          <Button onClick={openAddDialog} className="bg-teal-500 hover:bg-teal-600 text-white shadow-md hover:shadow-lg transition-shadow">
+            <UserPlus className="mr-2 h-5 w-5" /> Tambah Pengguna
+          </Button>
+        </div>
+      </header>
 
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-sky-700 dark:text-sky-300">Manajemen Pengguna</h1>
-        <Button onClick={openAddDialog} className="bg-teal-500 hover:bg-teal-600 text-white shadow-md hover:shadow-lg transition-shadow">
-          <UserPlus className="mr-2 h-5 w-5" /> Tambah Pengguna
-        </Button>
-      </div>
-
-      {loading ? (
-        <div className="text-center py-10 text-slate-500 dark:text-slate-400">Memuat data pengguna...</div>
-      ) : (
-        <div className="bg-white dark:bg-slate-800 shadow-xl rounded-lg overflow-hidden"> {/* 3D effect with shadow and rounded corners */}
-          <Table>
-            <TableCaption className="py-4 text-sm text-slate-500 dark:text-slate-400">Daftar semua pengguna terdaftar</TableCaption>
-            <TableHeader className="bg-sky-600 dark:bg-sky-700">{/* Thematic header */}<TableRow>
-                <TableHead className="text-white font-semibold px-6 py-3">Username</TableHead>
-                <TableHead className="text-white font-semibold px-6 py-3">Email</TableHead>
-                <TableHead className="text-white font-semibold px-6 py-3">Role</TableHead>
-                <TableHead className="text-white font-semibold px-6 py-3">Domisili</TableHead>
-                <TableHead className="text-white font-semibold px-6 py-3">Tanggal Dibuat</TableHead>
-                <TableHead className="text-right text-white font-semibold px-6 py-3">Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody className="divide-y divide-slate-200 dark:divide-slate-700">{/* Row dividers */}{users.length === 0 ? (
+      {/* Kontainer konten utama disesuaikan */}
+      <main className="container mx-auto py-6 md:py-8 px-4 md:px-6 flex-1">
+        {loading ? (
+          <div className="text-center py-10 text-slate-700 dark:text-slate-300">Memuat data pengguna...</div>
+        ) : (
+          // Wadah tabel disesuaikan dengan gaya admin/page.tsx (content blocks)
+          <div className="bg-blue-50 dark:bg-slate-800 shadow-lg rounded-xl overflow-hidden">
+            <Table>
+              <TableCaption className="py-4 text-sm text-slate-600 dark:text-slate-400">Daftar semua pengguna terdaftar</TableCaption>
+              {/* TableHeader disesuaikan dengan gaya laporan-akhir/laporan-pengajuan */}
+              <TableHeader className="bg-sky-100 dark:bg-sky-700/50">
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-slate-500 dark:text-slate-400">
-                    Tidak ada pengguna ditemukan
-                  </TableCell>
+                  <TableHead className="px-6 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase">Username</TableHead>
+                  <TableHead className="px-6 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase">Email</TableHead>
+                  <TableHead className="px-6 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase">Role</TableHead>
+                  <TableHead className="px-6 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase ">Domisili</TableHead>
+                  <TableHead className="px-6 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase">Tanggal Dibuat</TableHead>
+                  <TableHead className="px-6 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase text-center w-[120px]">Aksi</TableHead> {/* Added text-center and w-[120px] */}
                 </TableRow>
-              ) : (
-                users.map((user) => (
-                  <TableRow key={user.id} className="hover:bg-sky-50 dark:hover:bg-slate-700/50 transition-colors">{/* Hover effect */}<TableCell className="font-medium px-6 py-4 text-slate-700 dark:text-slate-200">{user.username}</TableCell>
-                    <TableCell className="px-6 py-4 text-slate-600 dark:text-slate-300">{user.email}</TableCell>
-                    <TableCell className="px-6 py-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor(user.role)}`}>
-                        {user.role}
-                      </span>
-                    </TableCell>
-                    <TableCell className="px-6 py-4 text-slate-600 dark:text-slate-300">{user.domisili}</TableCell>
-                    <TableCell className="px-6 py-4 text-slate-500 dark:text-slate-400">{new Date(user.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })}</TableCell>
-                    <TableCell className="text-right px-6 py-4">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="mr-2 border-sky-300 dark:border-sky-600 text-sky-600 hover:bg-sky-100 dark:text-sky-400 dark:hover:bg-sky-700" // Thematic button
-                        onClick={() => openEditDialog(user)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="border-rose-300 dark:border-rose-600 text-rose-500 hover:bg-rose-100 dark:text-rose-400 dark:hover:bg-rose-700" // Thematic button
-                        onClick={() => openDeleteDialog(user)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+              </TableHeader>
+              {/* TableBody disesuaikan dengan gaya laporan-akhir/laporan-pengajuan */}
+              <TableBody className="divide-y divide-slate-200 dark:divide-slate-700">
+                {users.length === 0 ? ( 
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8 text-slate-700 dark:text-slate-300">
+                      Tidak ada pengguna ditemukan
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      )}
+                ) : (
+                  users.map((user) => (
+                    <TableRow key={user.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+                      <TableCell className="font-medium px-6 py-4 text-slate-800 dark:text-slate-100">{user.username}</TableCell>
+                      <TableCell className="px-6 py-4 text-slate-600 dark:text-slate-300">{user.email}</TableCell>
+                      <TableCell className="px-6 py-4 text-center"> {/* Added text-center */}
+                        <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor(user.role)}`}> {/* Added inline-block */}
+                          {user.role}
+                        </span>
+                      </TableCell>
+                      <TableCell className="px-6 py-4 text-slate-600 dark:text-slate-300">{user.domisili}</TableCell>
+                      <TableCell className="px-6 py-4 text-slate-500 dark:text-slate-400">{new Date(user.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</TableCell> {/* Ensure no whitespace/newline follows the last TableCell before TableRow closes */}
+                      <TableCell className="px-6 py-4 flex items-center"> {/* Added flex items-center */}
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="mr-2 border-sky-300 dark:border-sky-600 text-sky-600 hover:bg-sky-100 dark:text-sky-400 dark:hover:bg-sky-700" // Thematic button
+                          onClick={() => openEditDialog(user)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="border-rose-300 dark:border-rose-600 text-rose-500 hover:bg-rose-100 dark:text-rose-400 dark:hover:bg-rose-700" // Thematic button
+                          onClick={() => openDeleteDialog(user)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>{/* Ensure no whitespace/newline follows the last TableCell before TableRow closes */}
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </main>
 
       {/* Edit User Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-md bg-white dark:bg-slate-800"> {/* Thematic dialog background */}
-          <DialogHeader>
+        <DialogContent className="sm:max-w-md bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-sky-100 dark:border-sky-800">
+          <DialogHeader className="pb-4 border-b border-slate-200 dark:border-slate-700">
             <DialogTitle className="text-sky-700 dark:text-sky-300">Edit Pengguna</DialogTitle>
             <DialogDescription className="text-slate-500 dark:text-slate-400">
               Update user information
@@ -324,7 +320,7 @@ export default function AdminUsersPage() {
                 name="email"
                 value={formData.email}
                 onChange={handleInputChange}
-                className="col-span-3 bg-slate-50 dark:bg-slate-700 border-slate-300 dark:border-slate-600 focus:ring-sky-500" // Thematic input
+                className="col-span-3 bg-slate-100 dark:bg-slate-700 border-slate-300 dark:border-slate-600 focus:ring-sky-500 text-slate-900 dark:text-slate-100"
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
@@ -336,7 +332,7 @@ export default function AdminUsersPage() {
                 name="username"
                 value={formData.username}
                 onChange={handleInputChange}
-                className="col-span-3 bg-slate-50 dark:bg-slate-700 border-slate-300 dark:border-slate-600 focus:ring-sky-500" // Thematic input
+                className="col-span-3 bg-slate-100 dark:bg-slate-700 border-slate-300 dark:border-slate-600 focus:ring-sky-500 text-slate-900 dark:text-slate-100"
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
@@ -347,10 +343,10 @@ export default function AdminUsersPage() {
                 value={formData.role} 
                 onValueChange={(value) => handleSelectChange("role", value)}
               >
-                <SelectTrigger className="col-span-3 bg-slate-50 dark:bg-slate-700 border-slate-300 dark:border-slate-600 focus:ring-sky-500"> {/* Thematic select */}
-                  <SelectValue placeholder="Pilih role" />
+                <SelectTrigger className="col-span-3 bg-slate-100 dark:bg-slate-700 border-slate-300 dark:border-slate-600 focus:ring-sky-500 text-slate-900 dark:text-slate-100">
+                  <SelectValue placeholder="Pilih role" className="text-slate-900 dark:text-slate-100"/>
                 </SelectTrigger>
-                <SelectContent className="bg-white dark:bg-slate-700"> {/* Thematic select content */}
+                <SelectContent className="bg-white dark:bg-slate-700">
                   <SelectItem value="user">User</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
                   <SelectItem value="kepala bidang">Kepala Bidang</SelectItem>
@@ -365,10 +361,10 @@ export default function AdminUsersPage() {
                 value={formData.domisili} 
                 onValueChange={(value) => handleSelectChange("domisili", value)}
               >
-                <SelectTrigger className="col-span-3 bg-slate-50 dark:bg-slate-700 border-slate-300 dark:border-slate-600 focus:ring-sky-500"> {/* Thematic select */}
-                  <SelectValue placeholder="Pilih domisili" />
+                <SelectTrigger className="col-span-3 bg-slate-100 dark:bg-slate-700 border-slate-300 dark:border-slate-600 focus:ring-sky-500 text-slate-900 dark:text-slate-100">
+                  <SelectValue placeholder="Pilih domisili" className="text-slate-900 dark:text-slate-100"/>
                 </SelectTrigger>
-                <SelectContent className="bg-white dark:bg-slate-700"> {/* Thematic select content */}
+                <SelectContent className="bg-white dark:bg-slate-700">
                   {DomisiliEnum.map((domisili) => (
                     <SelectItem key={domisili} value={domisili}>
                       {domisili}
@@ -378,29 +374,29 @@ export default function AdminUsersPage() {
               </Select>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="pt-4 border-t border-slate-200 dark:border-slate-700">
             <Button variant="outline" onClick={() => setIsEditDialogOpen(false)} className="border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
               Batal
             </Button>
-            <Button onClick={handleUpdateUser} className="bg-sky-600 hover:bg-sky-700 text-white">Simpan Perubahan</Button> {/* Thematic button */}
+            <Button onClick={handleUpdateUser} className="bg-sky-600 hover:bg-sky-700 text-white">Simpan Perubahan</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Delete User Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="sm:max-w-md bg-white dark:bg-slate-800"> {/* Thematic dialog background */}
-          <DialogHeader>
+        <DialogContent className="sm:max-w-md bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-sky-100 dark:border-sky-800">
+          <DialogHeader className="pb-4 border-b border-slate-200 dark:border-slate-700">
             <DialogTitle className="text-rose-600 dark:text-rose-400">Hapus Pengguna</DialogTitle>
             <DialogDescription className="text-slate-500 dark:text-slate-400">
               Are you sure you want to delete {selectedUser?.username}? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="mt-4">
+          <DialogFooter className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
             <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)} className="border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
               Batal
             </Button>
-            <Button variant="destructive" onClick={handleDeleteUser} className="bg-rose-500 hover:bg-rose-600 text-white"> {/* Destructive button with theme color */}
+            <Button variant="destructive" onClick={handleDeleteUser} className="bg-rose-500 hover:bg-rose-600 text-white">
               Hapus
             </Button>
           </DialogFooter>
@@ -409,8 +405,8 @@ export default function AdminUsersPage() {
 
       {/* Add User Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent className="sm:max-w-md bg-white dark:bg-slate-800"> {/* Thematic dialog background */}
-          <DialogHeader>
+        <DialogContent className="sm:max-w-md bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-sky-100 dark:border-sky-800">
+          <DialogHeader className="pb-4 border-b border-slate-200 dark:border-slate-700">
             <DialogTitle className="text-sky-700 dark:text-sky-300">Tambah Pengguna Baru</DialogTitle>
             <DialogDescription className="text-slate-500 dark:text-slate-400">
               Create a new user account
@@ -426,7 +422,7 @@ export default function AdminUsersPage() {
                 name="email"
                 value={formData.email}
                 onChange={handleInputChange}
-                className="col-span-3 bg-slate-50 dark:bg-slate-700 border-slate-300 dark:border-slate-600 focus:ring-sky-500" // Thematic input
+                className="col-span-3 bg-slate-100 dark:bg-slate-700 border-slate-300 dark:border-slate-600 focus:ring-sky-500 text-slate-900 dark:text-slate-100"
                 required
               />
             </div>
@@ -439,7 +435,7 @@ export default function AdminUsersPage() {
                 name="username"
                 value={formData.username}
                 onChange={handleInputChange}
-                className="col-span-3 bg-slate-50 dark:bg-slate-700 border-slate-300 dark:border-slate-600 focus:ring-sky-500" // Thematic input
+                className="col-span-3 bg-slate-100 dark:bg-slate-700 border-slate-300 dark:border-slate-600 focus:ring-sky-500 text-slate-900 dark:text-slate-100"
                 required
               />
             </div>
@@ -453,7 +449,7 @@ export default function AdminUsersPage() {
                 type="password"
                 value={formData.password}
                 onChange={handleInputChange}
-                className="col-span-3 bg-slate-50 dark:bg-slate-700 border-slate-300 dark:border-slate-600 focus:ring-sky-500" // Thematic input
+                className="col-span-3 bg-slate-100 dark:bg-slate-700 border-slate-300 dark:border-slate-600 focus:ring-sky-500 text-slate-900 dark:text-slate-100"
                 required
               />
             </div>
@@ -465,10 +461,10 @@ export default function AdminUsersPage() {
                 value={formData.role} 
                 onValueChange={(value) => handleSelectChange("role", value)}
               >
-                <SelectTrigger className="col-span-3 bg-slate-50 dark:bg-slate-700 border-slate-300 dark:border-slate-600 focus:ring-sky-500"> {/* Thematic select */}
-                  <SelectValue placeholder="Pilih role" />
+                <SelectTrigger className="col-span-3 bg-slate-100 dark:bg-slate-700 border-slate-300 dark:border-slate-600 focus:ring-sky-500 text-slate-900 dark:text-slate-100">
+                  <SelectValue placeholder="Pilih role" className="text-slate-900 dark:text-slate-100"/>
                 </SelectTrigger>
-                <SelectContent className="bg-white dark:bg-slate-700"> {/* Thematic select content */}
+                <SelectContent className="bg-white dark:bg-slate-700">
                   <SelectItem value="user">User</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
                   <SelectItem value="kepala bidang">Kepala Bidang</SelectItem>
@@ -483,10 +479,10 @@ export default function AdminUsersPage() {
                 value={formData.domisili} 
                 onValueChange={(value) => handleSelectChange("domisili", value)}
               >
-                <SelectTrigger className="col-span-3 bg-slate-50 dark:bg-slate-700 border-slate-300 dark:border-slate-600 focus:ring-sky-500"> {/* Thematic select */}
-                  <SelectValue placeholder="Pilih domisili" />
+                <SelectTrigger className="col-span-3 bg-slate-100 dark:bg-slate-700 border-slate-300 dark:border-slate-600 focus:ring-sky-500 text-slate-900 dark:text-slate-100">
+                  <SelectValue placeholder="Pilih domisili" className="text-slate-900 dark:text-slate-100"/>
                 </SelectTrigger>
-                <SelectContent className="bg-white dark:bg-slate-700"> {/* Thematic select content */}
+                <SelectContent className="bg-white dark:bg-slate-700">
                   {DomisiliEnum.map((domisili) => (
                     <SelectItem key={domisili} value={domisili}>
                       {domisili}
@@ -496,14 +492,19 @@ export default function AdminUsersPage() {
               </Select>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="pt-4 border-t border-slate-200 dark:border-slate-700">
             <Button variant="outline" onClick={() => setIsAddDialogOpen(false)} className="border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
               Batal
             </Button>
-            <Button onClick={handleAddUser} className="bg-teal-500 hover:bg-teal-600 text-white">Tambah Pengguna</Button> {/* Thematic button */}
+            <Button onClick={handleAddUser} className="bg-teal-500 hover:bg-teal-600 text-white">Tambah Pengguna</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Footer - Ditambahkan untuk konsistensi */}
+      <footer className="py-4 text-center text-sm text-slate-500 dark:text-slate-400 border-t border-sky-200 dark:border-sky-700">
+        
+      </footer>
     </div>
   );
 }

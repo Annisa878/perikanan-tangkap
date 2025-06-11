@@ -24,47 +24,11 @@ import {
     DialogTitle,
     // DialogDescription, // Uncomment if needed
 } from "@/components/ui/dialog";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, Ship } from "lucide-react"; // Added Ship
 import { Badge } from "@/components/ui/badge"; // Import Badge
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"; // Import Alert components
+import { Domisili, Bulan } from "@/app/lib/enums"; // Import Domisili and Bulan enums
 import exportToExcel from "@/utils/exportToExcel";
-
-// Enum for Domisili
-export enum Domisili {
-    KabBanyuasin = "Kab. Banyuasin",
-    KabEmpatLawang = "Kab. Empat Lawang",
-    KabMuaraEnim = "Kab. Muara Enim",
-    KabMusiBanyuasin = "Kab. Musi Banyuasin",
-    KabMusiRawas = "Kab. Musi Rawas",
-    KabMusiRawasUtara = "Kab. Musi Rawas Utara",
-    KabOganIlir = "Kab. Ogan Ilir",
-    KabOganKomeringIlir = "Kab. Ogan Komering Ilir",
-    KabOganKomeringUlu = "Kab. Ogan Komering Ulu",
-    KabOganKomeringUluSelatan = "Kab. Ogan Komering Ulu Selatan",
-    KabOganKomeringUluTimur = "Kab. Ogan Komering Ulu Timur",
-    KabPenukalAbabLematangIlir = "Kab. Penukal Abab Lematang Ilir",
-    KotaLubukLinggau = "Kota Lubuk Linggau",
-    KotaLahat = "Kota Lahat",
-    KotaPalembang = "Kota Palembang",
-    KotaPagarAlam = "Kota Pagar Alam",
-    KotaPrabumulih = "Kota Prabumulih"
-}
-
-// Enum for Bulan
-export enum Bulan {
-    Januari = "Januari",
-    Februari = "Februari",
-    Maret = "Maret",
-    April = "April",
-    Mei = "Mei",
-    Juni = "Juni",
-    Juli = "Juli",
-    Agustus = "Agustus",
-    September = "September",
-    Oktober = "Oktober",
-    November = "November",
-    Desember = "Desember"
-}
 
 // DetailProduksi interface remains the same
 interface DetailProduksi {
@@ -125,7 +89,9 @@ export default function AdminMonitoringPage() {
     const [filterKUB, setFilterKUB] = useState<string>('');
     const [filterBulan, setFilterBulan] = useState<Bulan | ''>('');
     const [filterTahun, setFilterTahun] = useState<number | ''>('');
+    const [filterStatusKabid, setFilterStatusKabid] = useState<string>(''); // New state for Kabid status filter
     const [alertMessage, setAlertMessage] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+    const [isExporting, setIsExporting] = useState(false); // State for export loading
 
     // Updated initial form data with enum types
     const [formData, setFormData] = useState<Monitoring>({
@@ -268,22 +234,51 @@ export default function AdminMonitoringPage() {
         }
     };
 
-    // Apply all filters
-    const filteredMonitoringData = monitoringData.filter(monitoring =>
-        (filterDomisili === '' || monitoring.domisili === filterDomisili) &&
-        (filterKUB === '' || monitoring.kub.toLowerCase().includes(filterKUB.toLowerCase())) && // Updated KUB filter logic
-        (filterBulan === '' || monitoring.bulan === filterBulan) &&
-        (filterTahun === '' || monitoring.tahun === filterTahun)
-    );
+    // Apply all filters with corrected logic for status_verifikasi_kabid
+    const filteredMonitoringData = monitoringData.filter(monitoring => {
+        const domisiliMatch = (filterDomisili === '' || monitoring.domisili === filterDomisili);
+        const kubMatch = (filterKUB === '' || monitoring.kub.toLowerCase().includes(filterKUB.toLowerCase()));
+        const bulanMatch = (filterBulan === '' || monitoring.bulan === filterBulan);
+        const tahunMatch = (filterTahun === '' || monitoring.tahun === filterTahun);
+
+        let statusKabidMatch = true;
+        if (filterStatusKabid !== '') {
+            if (filterStatusKabid === KABID_VERIFICATION_STATUSES.PENDING) {
+                // For "Menunggu", match if actual status is null, undefined, empty string, OR the string "Menunggu"
+                // This covers cases where pending status is represented by a lack of explicit status.
+                statusKabidMatch = !monitoring.status_verifikasi_kabid || monitoring.status_verifikasi_kabid === KABID_VERIFICATION_STATUSES.PENDING;
+            } else {
+                // For other statuses ("Disetujui", "Ditolak"), it requires an exact match.
+                statusKabidMatch = monitoring.status_verifikasi_kabid === filterStatusKabid;
+            }
+        }
+
+        return domisiliMatch && kubMatch && bulanMatch && tahunMatch && statusKabidMatch;
+    });
 
     // Handle export with all filters
     const handleExport = () => {
-        exportToExcel(
-            filterDomisili || '', 
-            filterKUB || '', 
-            filterBulan || '', 
-            filterTahun ? filterTahun.toString() : ''
-        );
+        if (filteredMonitoringData.length === 0) {
+            setAlertMessage({ type: 'error', message: 'Tidak ada data untuk diekspor.' });
+            return;
+        }
+        setIsExporting(true);
+        try {
+            // Assuming exportToExcel is synchronous or you want to handle its promise
+            exportToExcel(
+                filterDomisili || '',
+                filterKUB || '',
+                filterBulan || '',
+                filterTahun ? filterTahun.toString() : ''
+            );
+            // If exportToExcel is synchronous and successful, you might not need a success message here
+            // as the browser will prompt for download.
+        } catch (error) {
+            console.error("Error exporting to Excel:", error);
+            setAlertMessage({ type: 'error', message: 'Terjadi kesalahan saat mengekspor ke Excel.' });
+        } finally {
+            setIsExporting(false);
+        }
     };
 
     // Helper function to get badge variant based on Kabid's verification status
@@ -301,13 +296,17 @@ export default function AdminMonitoringPage() {
         }
     };
     return (
-        <div className="container mx-auto p-4 md:p-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
-                <h1 className="text-3xl font-bold text-sky-700 dark:text-sky-300 mb-4 sm:mb-0">
-                    Data Monitoring Perikanan
-                </h1>
-            </div>
+        <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-100 to-cyan-200 dark:from-blue-900 dark:to-cyan-950 text-slate-700 dark:text-slate-200">
+            <header className="bg-white/70 dark:bg-sky-950/70 backdrop-blur-md py-4 shadow-md sticky top-0 z-40 border-b border-sky-300/70 dark:border-sky-800/70">
+                <div className="container mx-auto px-4 md:px-6">
+                    <div className="text-xl md:text-2xl font-semibold flex items-center text-sky-700 dark:text-sky-300">
+                        <Ship className="mr-2.5 h-6 w-6 text-cyan-600 dark:text-cyan-400" />
+                        Data Monitoring
+                    </div>
+                </div>
+            </header>
 
+            <main className="container mx-auto py-6 md:py-8 px-4 md:px-6 flex-1">
             {alertMessage && (
                 <Alert 
                     variant={alertMessage.type === 'error' ? 'destructive' : 'default'}
@@ -318,28 +317,27 @@ export default function AdminMonitoringPage() {
                 </Alert>
             )}
 
-                {/* Add action button here if needed, e.g., Add Monitoring */}
-
             {/* Filters Section */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 p-6 border border-sky-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 shadow-lg">
-                <div>
-                    <Label htmlFor="filterKUB" className="block mb-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">Filter KUB</Label>
-                    <Input
+            <div className="mb-6 p-4 md:p-6 border border-sky-200 dark:border-sky-700 rounded-xl bg-blue-50 dark:bg-slate-800 shadow-lg">
+                <div className="flex flex-wrap items-end gap-x-4 gap-y-2">
+                    <div className="flex-grow min-w-[150px] sm:min-w-[200px]">
+                        <label htmlFor="filterKUB" className="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-0.5">Nama KUB</label>
+                        <input
                         type="text"
                         id="filterKUB"
                         value={filterKUB}
                         onChange={(e) => setFilterKUB(e.target.value)}
                         placeholder="Cari Nama KUB..."
-                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 rounded-md text-sm focus:ring-sky-500 focus:border-sky-500"
-                    />
-                </div>
-                <div>
-                    <Label htmlFor="filterDomisili" className="block mb-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">Filter Domisili</Label>
+                            className="w-full px-3 py-2 border border-sky-300 dark:border-sky-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-sky-500 focus:border-sky-500 transition-colors"
+                        />
+                    </div>
+                    <div className="flex-grow min-w-[150px] sm:min-w-[180px]">
+                        <label htmlFor="filterDomisili" className="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-0.5">Domisili</label>
                     <select
                         id="filterDomisili"
                         value={filterDomisili}
                         onChange={(e) => setFilterDomisili(e.target.value as Domisili)}
-                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 rounded-md text-sm focus:ring-sky-500 focus:border-sky-500"
+                            className="w-full px-3 py-2 border border-sky-300 dark:border-sky-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-sky-500 focus:border-sky-500 transition-colors"
                     >
                         <option value="">Semua Domisili</option>
                         {Object.values(Domisili).map((domisili) => (
@@ -347,15 +345,15 @@ export default function AdminMonitoringPage() {
                                 {domisili}
                             </option>
                         ))}
-                    </select>
-                </div>
-                <div>
-                    <Label htmlFor="filterBulan" className="block mb-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">Filter Bulan</Label>
+                        </select>
+                    </div>
+                    <div className="flex-grow min-w-[120px] sm:min-w-[150px]">
+                        <label htmlFor="filterBulan" className="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-0.5">Bulan</label>
                     <select
                         id="filterBulan"
                         value={filterBulan}
                         onChange={(e) => setFilterBulan(e.target.value as Bulan)}
-                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 rounded-md text-sm focus:ring-sky-500 focus:border-sky-500"
+                            className="w-full px-3 py-2 border border-sky-300 dark:border-sky-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-sky-500 focus:border-sky-500 transition-colors"
                     >
                         <option value="">Semua Bulan</option>
                         {Object.values(Bulan).map((bulan) => (
@@ -363,15 +361,15 @@ export default function AdminMonitoringPage() {
                                 {bulan}
                             </option>
                         ))}
-                    </select>
-                </div>
-                <div>
-                    <Label htmlFor="filterTahun" className="block mb-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">Filter Tahun</Label>
+                        </select>
+                    </div>
+                    <div className="flex-grow min-w-[100px] sm:min-w-[120px]">
+                        <label htmlFor="filterTahun" className="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-0.5">Tahun</label>
                     <select
                         id="filterTahun"
                         value={filterTahun}
                         onChange={(e) => setFilterTahun(e.target.value ? parseInt(e.target.value) : '')}
-                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 rounded-md text-sm focus:ring-sky-500 focus:border-sky-500"
+                            className="w-full px-3 py-2 border border-sky-300 dark:border-sky-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-sky-500 focus:border-sky-500 transition-colors"
                     >
                         <option value="">Semua Tahun</option>
                         {yearList.map((year) => (
@@ -379,11 +377,41 @@ export default function AdminMonitoringPage() {
                                 {year}
                             </option>
                         ))}
-                    </select>
+                        </select>
+                    </div>
+                    <div className="flex-grow min-w-[150px] sm:min-w-[180px]">
+                        <label htmlFor="filterStatusKabid" className="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-0.5">Status Kabid</label>
+                        <select
+                            id="filterStatusKabid"
+                            value={filterStatusKabid}
+                            onChange={(e) => setFilterStatusKabid(e.target.value)}
+                            className="w-full px-3 py-2 border border-sky-300 dark:border-sky-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-sky-500 focus:border-sky-500 transition-colors"
+                        >
+                            <option value="">Semua Status Kabid</option>
+                            {Object.values(KABID_VERIFICATION_STATUSES).map((status) => (
+                                <option key={status} value={status}>
+                                    {status}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+                {/* Export Button */}
+                <div className="mt-4">
+                    <button
+                        onClick={handleExport}
+                        disabled={isExporting || filteredMonitoringData.length === 0}
+                        className="w-full sm:w-auto px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white font-medium rounded-md shadow-sm hover:shadow-md transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center text-sm"
+                    >
+                        {isExporting ? (
+                            <><svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Mengekspor...</>
+                        ) : "Export Sesuai Filter"}
+                    </button>
                 </div>
             </div>
 
-            <div className="bg-white dark:bg-slate-800 shadow-xl rounded-lg overflow-hidden">
+            <div className="w-full bg-blue-50 dark:bg-slate-800 p-4 md:p-5 rounded-xl shadow-lg flex flex-col border border-sky-100 dark:border-sky-800">
+                <h2 className="font-semibold text-xl mb-4 text-sky-700 dark:text-sky-200 border-b pb-3 border-sky-200 dark:border-sky-700">Daftar Monitoring</h2>
                 <Table>
                     <TableHeader className="bg-sky-600 dark:bg-sky-700">
                         <TableRow>
@@ -511,10 +539,10 @@ export default function AdminMonitoringPage() {
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogContent className="sm:max-w-[600px] bg-white dark:bg-slate-800">
                     <DialogHeader>
-                        <DialogTitle className="text-sky-700 dark:text-sky-300">Edit Data Monitoring</DialogTitle>
+                        <DialogTitle className="text-sky-700 dark:text-sky-300">Edit Data Monitoring - {formData.nama_anggota} ({formData.kub})</DialogTitle>
                     </DialogHeader>
-                    <form onSubmit={handleSave}> {/* Removed space-y-4, will use grid gap */}
-                        <div className="grid gap-4 py-4">
+                    <form onSubmit={handleSave}>
+                        <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-2"> {/* Added max-height and overflow */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <Label htmlFor="nama_anggota_dialog">Nama Anggota</Label>
@@ -524,7 +552,7 @@ export default function AdminMonitoringPage() {
                                         name="nama_anggota"
                                         value={formData.nama_anggota}
                                         onChange={handleInputChange}
-                                        disabled // Nama anggota biasanya tidak diubah dari sini
+                                        disabled 
                                         className="mt-1"
                                     />
                                 </div>
@@ -536,7 +564,7 @@ export default function AdminMonitoringPage() {
                                         name="kub"
                                         value={formData.kub}
                                         onChange={handleInputChange}
-                                        disabled // KUB biasanya tidak diubah dari sini
+                                        disabled 
                                         className="mt-1"
                                     />
                                 </div>
@@ -550,7 +578,7 @@ export default function AdminMonitoringPage() {
                                         name="trip"
                                         value={formData.trip}
                                         onChange={handleInputChange}
-                                        className="mt-1 bg-slate-50 dark:bg-slate-700 border-slate-300 dark:border-slate-600 focus:ring-sky-500"
+                                        className="mt-1 bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 focus:ring-sky-500 focus:border-sky-500"
                                     />
                                 </div>
                                 <div>
@@ -561,7 +589,7 @@ export default function AdminMonitoringPage() {
                                         name="jenis_bbm"
                                         value={formData.jenis_bbm}
                                         onChange={handleInputChange}
-                                        className="mt-1 bg-slate-50 dark:bg-slate-700 border-slate-300 dark:border-slate-600 focus:ring-sky-500"
+                                        className="mt-1 bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 focus:ring-sky-500 focus:border-sky-500"
                                     />
                                 </div>
                             </div>
@@ -573,7 +601,7 @@ export default function AdminMonitoringPage() {
                                     name="jumlah_bbm_liter"
                                     value={formData.jumlah_bbm_liter}
                                     onChange={handleInputChange}
-                                    className="mt-1 bg-slate-50 dark:bg-slate-700 border-slate-300 dark:border-slate-600 focus:ring-sky-500"
+                                    className="mt-1 bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 focus:ring-sky-500 focus:border-sky-500"
                                 />
                             </div>
                             <div>
@@ -583,7 +611,7 @@ export default function AdminMonitoringPage() {
                                     name="daerah_penangkapan"
                                     value={formData.daerah_penangkapan}
                                     onChange={handleInputChange}
-                                    className="mt-1 bg-slate-50 dark:bg-slate-700 border-slate-300 dark:border-slate-600 focus:ring-sky-500"
+                                    className="mt-1 bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 focus:ring-sky-500 focus:border-sky-500"
                                     rows={3}
                                 />
                             </div>
@@ -594,7 +622,7 @@ export default function AdminMonitoringPage() {
                                     name="keterangan"
                                     value={formData.keterangan}
                                     onChange={handleInputChange}
-                                    className="mt-1 bg-slate-50 dark:bg-slate-700 border-slate-300 dark:border-slate-600 focus:ring-sky-500"
+                                    className="mt-1 bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 focus:ring-sky-500 focus:border-sky-500"
                                     rows={3}
                                 />
                             </div>
@@ -606,7 +634,7 @@ export default function AdminMonitoringPage() {
                                         name="domisili"
                                         value={formData.domisili}
                                         onChange={handleInputChange}
-                                        className="w-full mt-1 px-3 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 rounded-md text-sm focus:ring-sky-500 focus:border-sky-500"
+                                        className="w-full mt-1 px-3 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 rounded-lg text-sm focus:ring-sky-500 focus:border-sky-500"
                                     >
                                         {Object.values(Domisili).map((domisili) => (
                                             <option key={domisili} value={domisili}>
@@ -622,7 +650,7 @@ export default function AdminMonitoringPage() {
                                         name="bulan"
                                         value={formData.bulan}
                                         onChange={handleInputChange}
-                                        className="w-full mt-1 px-3 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 rounded-md text-sm focus:ring-sky-500 focus:border-sky-500"
+                                        className="w-full mt-1 px-3 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 rounded-lg text-sm focus:ring-sky-500 focus:border-sky-500"
                                     >
                                         {Object.values(Bulan).map((bulan) => (
                                             <option key={bulan} value={bulan}>
@@ -639,7 +667,17 @@ export default function AdminMonitoringPage() {
                                         name="tahun"
                                         value={formData.tahun}
                                         onChange={handleInputChange}
-                                        className="mt-1 bg-slate-50 dark:bg-slate-700 border-slate-300 dark:border-slate-600 focus:ring-sky-500"
+                                        className="mt-1 bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 focus:ring-sky-500 focus:border-sky-500"
+                                    />
+                                </div>
+                                <div>
+                                    <Label htmlFor="created_at_dialog">Tanggal Dibuat</Label>
+                                    <Input
+                                        id="created_at_dialog"
+                                        type="text"
+                                        value={new Date(formData.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                        disabled
+                                        className="mt-1"
                                     />
                                 </div>
                             </div>
@@ -663,15 +701,11 @@ export default function AdminMonitoringPage() {
                     </form>
                 </DialogContent>
             </Dialog>
-
-            <div className="mt-6 flex justify-end">
-                <Button
-                    onClick={handleExport}
-                    className="bg-teal-500 hover:bg-teal-600 text-white shadow-md hover:shadow-lg transition-shadow"
-                >
-                    Export to Excel
-                </Button>
-            </div>
+            </main>
+            
+            <footer className="py-4 text-center text-sm text-slate-500 dark:text-slate-400 border-t border-sky-200 dark:border-sky-700">
+                
+            </footer>
         </div>
     );
 }

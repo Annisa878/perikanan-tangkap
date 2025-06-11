@@ -83,7 +83,7 @@ export default async function KepalaBidangDashboardPage() { // Renamed and made 
   ];
   
   
-  // Define the props for StatCard, explicitly including className for the icon
+  // Define the props for StatCard
   interface StatCardProps {
     title: string;
     value: string | number;
@@ -93,30 +93,31 @@ export default async function KepalaBidangDashboardPage() { // Renamed and made 
     // link: string; // Link prop removed
   }
   const StatCard: React.FC<StatCardProps> = ({ title, value, icon, bgColorClass, textColorClass }) => (
-    // Link wrapper removed, group and group-hover classes removed
-    <div className={`p-3 md:p-4 rounded-xl shadow-md bg-white dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600/70 h-full flex flex-col justify-between transition-all duration-300 ease-in-out`}>
-      {/* Adjusted padding for the card */}
-      <div className="flex items-start justify-between">
-        <div className={`p-2 rounded-lg ${bgColorClass} bg-opacity-20 dark:bg-opacity-25`}> {/* Reduced padding for icon background */}
-          {React.cloneElement(icon, { className: `h-5 w-5 md:h-6 md:w-6 ${textColorClass} transition-transform duration-300` })} {/* Reduced icon size, removed group-hover scale */}
+    // Applied themed card styling from monitoring/user pages
+    <div className="p-3 rounded-lg shadow-md bg-blue-50 dark:bg-slate-800 h-full flex flex-col justify-between transition-all duration-200 ease-in-out hover:shadow-lg hover:scale-[1.01]">
+      <div className="flex items-start justify-between mb-2"> {/* Reduced margin-bottom from mb-4 to mb-2 */}
+        <div className={`p-1 rounded-lg ${bgColorClass} bg-opacity-20 dark:bg-opacity-25`}> {/* Reduced padding for icon background from p-2 to p-1 */}
+          {React.cloneElement(icon, { className: `h-4 w-4 md:h-5 md:w-5 ${textColorClass} transition-transform duration-300` })} {/* Reduced icon size */}
         </div>
       </div>
       <div>
-        <h3 className="mt-2 text-xl md:text-2xl font-bold text-slate-700 dark:text-slate-50">{value}</h3> {/* Reduced font size for value */}
-        <p className="text-xs md:text-sm text-slate-500 dark:text-slate-300 truncate" title={title}>{title}</p> {/* Reduced font size for title */}
+        <h3 className="mt-1 text-lg md:text-xl font-bold text-slate-700 dark:text-slate-50">{value}</h3> {/* Reduced margin-top and font size for value */}
+        <p className="text-xs text-slate-500 dark:text-slate-300 truncate" title={title}>{title}</p> {/* Reduced font size for title, removed md:text-sm */}
       </div>
     </div>
   );
 
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-br from-sky-200 via-cyan-100 to-teal-200 dark:from-sky-800 dark:via-cyan-900 dark:to-teal-900 text-slate-700 dark:text-slate-200">
+    // Applied main background gradient from monitoring page
+    <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-100 to-cyan-200 dark:from-blue-900 dark:to-cyan-950 text-slate-700 dark:text-slate-200">
       {/* Header */}
-      <header className="bg-white/70 dark:bg-sky-950/70 backdrop-blur-md py-5 shadow-md sticky top-0 z-40 border-b border-sky-300/70 dark:border-sky-800/70"> {/* Changed z-50 to z-40 */}
+      {/* Kept sticky header structure but adjusted colors */}
+      <header className="bg-white/70 dark:bg-sky-950/70 backdrop-blur-md py-4 shadow-md sticky top-0 z-40 border-b border-sky-300/70 dark:border-sky-800/70">
         <div className="container mx-auto px-4 md:px-6">
-          <h1 className="text-xl md:text-2xl font-semibold flex items-center text-sky-700 dark:text-sky-300">
+          <div className="text-xl md:text-2xl font-semibold flex items-center text-sky-700 dark:text-sky-300">
             <Ship className="mr-2.5 h-6 w-6 text-cyan-600 dark:text-cyan-400" />
             Dashboard Kepala Bidang
-          </h1>
+          </div>
         </div>
       </header>            
       {/* Main Content */}
@@ -126,6 +127,8 @@ export default async function KepalaBidangDashboardPage() { // Renamed and made 
             <span className="font-medium">Error!</span> {countError}
           </div>
         )}
+
+        {/* Main Page Title was in the header, h1 below can be removed or repurposed if needed for other section titles */}
 
         {/* Stats Cards */}
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
@@ -157,30 +160,27 @@ export default async function KepalaBidangDashboardPage() { // Renamed and made 
         
         {/* Chart Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-          <section className="bg-white dark:bg-slate-700/50 rounded-xl shadow-md p-4 md:p-6 border border-slate-200 dark:border-slate-600/70">
+          {/* Applied themed chart container styling */}
+          <section className="p-6 bg-blue-50 dark:bg-slate-800 rounded-xl shadow-lg">
             <h2 className="text-lg font-medium text-slate-700 dark:text-slate-100 mb-4 text-center md:text-left">
               Pengajuan Diterima Anda
             </h2>
-            <div className="h-[160px] md:h-[200px]"> {/* Reduced height */}
+            <div className="h-[140px] md:h-[180px]"> {/* Further reduced height */}
               <PengajuanStatusChart data={diterimaChartData} />
             </div>
           </section>
 
-          <section className="bg-white dark:bg-slate-700/50 rounded-xl shadow-md p-4 md:p-6 border border-slate-200 dark:border-slate-600/70">
+          {/* Applied themed chart container styling */} {/* Removed the extra section tag */}
+          <section className="p-6 bg-blue-50 dark:bg-slate-800 rounded-xl shadow-lg">
             <h2 className="text-lg font-medium text-slate-700 dark:text-slate-100 mb-4 text-center md:text-left">
               Pengajuan Ditolak Anda
             </h2>
-            <div className="h-[160px] md:h-[200px]"> {/* Reduced height */}
+            <div className="h-[140px] md:h-[180px]"> {/* Further reduced height */}
               <PengajuanStatusChart data={ditolakChartData} />
             </div>
           </section>
         </div>
       </main>
-
-      {/* Footer (Optional) */}
-      <footer className="py-4 text-center text-sm text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-700">
-        © {new Date().getFullYear()} Sistem Monitoring Perikanan Tangkap.
-      </footer>
     </div>
   );
 }
