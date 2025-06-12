@@ -20,23 +20,32 @@ interface Laporan {
     nama_anggota: string;
     kub: string;
     bulan: string;
+    tahun: number; // Added tahun to Laporan interface
     trip: number;
     jenis_bbm: string;
     jumlah_bbm_liter: number;
     daerah_penangkapan: string;
     keterangan: string;
     domisili: string;
-    detail_produksi: DetailProduksi[];
+    detail_produksi: DetailProduksi[]; // This should be DetailProduksi[]
     total_produksi: number;
     total_pendapatan: number;
 }
 
-// Helper untuk mengubah nama bulan menjadi angka
-const monthNameToNumber: { [key: string]: number } = {
-    "Januari": 1, "Februari": 2, "Maret": 3, "April": 4,
-    "Mei": 5, "Juni": 6, "Juli": 7, "Agustus": 8,
-    "September": 9, "Oktober": 10, "November": 11, "Desember": 12
-};
+// Define types for month filter, similar to pengajuan status page
+interface AvailableBulan {
+    value: string; // "01", "02", ... "12"
+    display: string; // "Januari", "Februari", ...
+}
+
+const allMonths: AvailableBulan[] = [
+    { value: "01", display: "Januari" }, { value: "02", display: "Februari" },
+    { value: "03", display: "Maret" }, { value: "04", display: "April" },
+    { value: "05", display: "Mei" }, { value: "06", display: "Juni" },
+    { value: "07", display: "Juli" }, { value: "08", display: "Agustus" },
+    { value: "09", display: "September" }, { value: "10", display: "Oktober" },
+    { value: "11", display: "November" }, { value: "12", display: "Desember" }
+];
 
 export default function DaftarLaporanPage() {
     const supabase = createClient();
@@ -45,6 +54,7 @@ export default function DaftarLaporanPage() {
     const [loading, setLoading] = useState<boolean>(true);
     const [filterKUB, setFilterKUB] = useState<string>("");
     const [filterTahun, setFilterTahun] = useState<string>(""); // State untuk filter tahun
+    const [filterBulan, setFilterBulan] = useState<string>(""); // State untuk filter bulan
     const [userId, setUserId] = useState<string | null>(null);
     const [isAdmin, setIsAdmin] = useState<boolean>(false);
     const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
@@ -53,7 +63,7 @@ export default function DaftarLaporanPage() {
     useEffect(() => {
         const fetchUser = async () => {
             try {
-                const { data: { user } } = await supabase.auth.getUser();
+                const { data: { user }, error: authError } = await supabase.auth.getUser();
                 
                 if (user) {
                     const { data: userData, error } = await supabase
@@ -70,10 +80,12 @@ export default function DaftarLaporanPage() {
                         router.push("/sign-in");
                     }
                 } else {
+                    if (authError) console.error("Auth error:", authError.message);
                     router.push("/sign-in");
                 }
             } catch (error) {
                 console.error("Error fetching user:", error);
+                // Ensure router is available before pushing
                 router.push("/sign-in");
             }
         };
@@ -85,7 +97,7 @@ export default function DaftarLaporanPage() {
         if (userId !== null) {
             fetchLaporanData();
         }
-    }, [userId, filterKUB, filterTahun]);
+    }, [userId, filterKUB, filterTahun, filterBulan]); // Added filterBulan to dependencies
 
     const fetchLaporanData = async () => {
         try {
@@ -98,8 +110,8 @@ export default function DaftarLaporanPage() {
                 `);
             
             // Jika user bukan admin, hanya tampilkan laporan user tersebut
-            if (!isAdmin) {
-                query = query.eq("user_id", userId);
+            if (!isAdmin && userId) { // Ensure userId is available
+                query = query.eq("user_id", userId); // Assuming 'user_id' is the column name in 'monitoring' table
             }
             
             if (filterKUB) {
@@ -108,8 +120,14 @@ export default function DaftarLaporanPage() {
             }
 
             if (filterTahun) {
-                // Asumsikan ada kolom 'tahun' di tabel 'monitoring' atau Anda perlu mengekstrak tahun dari 'created_at'
                 query = query.eq("tahun", parseInt(filterTahun)); // Jika ada kolom 'tahun' bertipe integer
+                if (filterBulan) {
+                    // Find the display name of the month (e.g., "Januari") based on the value (e.g., "01")
+                    const selectedMonthObject = allMonths.find(m => m.value === filterBulan);
+                    if (selectedMonthObject) {
+                        query = query.eq("bulan", selectedMonthObject.display); // Filter by month name
+                    }
+                }
             }
             
             const { data, error } = await query.order('created_at', { ascending: false });
@@ -142,10 +160,8 @@ export default function DaftarLaporanPage() {
             // Dapatkan daftar unik tahun untuk filter
             const tahunSet = new Set<string>();
             data.forEach((item: any) => {
-                if (item.created_at) {
-                    tahunSet.add(new Date(item.created_at).getFullYear().toString());
-                } else if (item.tahun) { // Jika ada kolom tahun langsung
-                    tahunSet.add(item.tahun.toString());
+                if (item.tahun) { 
+                    tahunSet.add(item.tahun.toString()); // Prefer 'tahun' column if available
                 }
             });
             setAvailableTahun(Array.from(tahunSet).sort((a, b) => parseInt(b) - parseInt(a))); // Urutkan tahun terbaru dulu
@@ -162,6 +178,12 @@ export default function DaftarLaporanPage() {
             console.error("Error fetching laporan data:", error);
             setLoading(false);
         }
+    };
+
+    const handleTahunChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const newTahun = e.target.value;
+        setFilterTahun(newTahun);
+        setFilterBulan(""); // Reset month filter when year changes
     };
 
     const handleEditClick = (id: string) => {
@@ -238,7 +260,7 @@ export default function DaftarLaporanPage() {
             <main className="container mx-auto py-6 md:py-8 px-4 md:px-6 flex-1">
                 <div className="max-w-7xl mx-auto">
                     <div className="bg-blue-50 dark:bg-slate-800 rounded-lg shadow-md p-4 mb-6">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4"> {/* Disesuaikan menjadi 2 kolom */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"> {/* Adjusted for 3 columns */}
                             <div>
                                 <label className="block text-slate-700 dark:text-slate-300 text-sm font-medium mb-1">Filter KUB:</label>
                                 <input
@@ -253,7 +275,7 @@ export default function DaftarLaporanPage() {
                                 <label className="block text-slate-700 dark:text-slate-300 text-sm font-medium mb-1">Filter Tahun:</label>
                                 <select
                                     value={filterTahun}
-                                    onChange={(e) => setFilterTahun(e.target.value)}
+                                    onChange={handleTahunChange}
                                     className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-1 focus:ring-sky-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
                                 >
                                     <option value="">Semua Tahun</option>
@@ -262,12 +284,27 @@ export default function DaftarLaporanPage() {
                                     ))}
                                 </select>
                             </div>
+                            <div>
+                                <label className="block text-slate-700 dark:text-slate-300 text-sm font-medium mb-1">Filter Bulan:</label>
+                                <select
+                                    value={filterBulan}
+                                    onChange={(e) => setFilterBulan(e.target.value)}
+                                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-1 focus:ring-sky-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    disabled={!filterTahun} // Disable if no year is selected
+                                >
+                                    <option value="">Semua Bulan</option>
+                                    {allMonths.map((bulan) => ( // Use allMonths directly as availableBulan is not dynamically populated for months
+                                        <option key={bulan.value} value={bulan.value}>{bulan.display}</option>
+                                    ))}
+                                </select>
+                            </div>
                         </div>
                     </div>
 
                     {loading ? (
                         <div className="bg-blue-50 dark:bg-slate-800 p-8 rounded-lg shadow-md text-center">
-                            <p className="text-slate-600 dark:text-slate-400">Memuat data...</p>
+                             <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-slate-300 dark:border-slate-600 border-t-sky-600 dark:border-t-sky-500"></div>
+                            <p className="mt-2 text-slate-600 dark:text-slate-400">Memuat data...</p>
                         </div>
                     ) : laporan.length === 0 ? (
                         <div className="bg-blue-50 dark:bg-slate-800 p-8 rounded-lg shadow-md text-center">
@@ -282,7 +319,7 @@ export default function DaftarLaporanPage() {
                                             No
                                         </th>
                                         <th scope="col" className="px-3 py-3.5 text-left text-xs font-semibold text-white uppercase tracking-wider"> {/* Reduced padding */}
-                                            Tanggal
+                                            Tgl Input
                                         </th>
                                         <th scope="col" className="px-3 py-3.5 text-left text-xs font-semibold text-white uppercase tracking-wider max-w-xs"> {/* Reduced padding, added max-width */}
                                             KUB
