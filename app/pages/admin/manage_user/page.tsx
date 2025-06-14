@@ -245,14 +245,7 @@ export default function AdminUsersPage() {
               <TableCaption className="py-4 text-sm text-slate-600 dark:text-slate-400">Daftar semua pengguna terdaftar</TableCaption>
               {/* TableHeader disesuaikan dengan gaya laporan-akhir/laporan-pengajuan */}
               <TableHeader className="bg-sky-100 dark:bg-sky-700/50">
-                <TableRow>
-                  <TableHead className="px-6 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase">Username</TableHead>
-                  <TableHead className="px-6 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase">Email</TableHead>
-                  <TableHead className="px-6 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase">Role</TableHead>
-                  <TableHead className="px-6 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase ">Domisili</TableHead>
-                  <TableHead className="px-6 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase">Tanggal Dibuat</TableHead>
-                  <TableHead className="px-6 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase text-center w-[120px]">Aksi</TableHead> {/* Added text-center and w-[120px] */}
-                </TableRow>
+                <TableRow><TableHead className="px-6 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase">Username</TableHead><TableHead className="px-6 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase">Email</TableHead><TableHead className="px-6 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase">Role</TableHead><TableHead className="px-6 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase ">Domisili</TableHead><TableHead className="px-6 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase">Tanggal Dibuat</TableHead><TableHead className="px-6 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase text-center w-[120px]">Aksi</TableHead></TableRow>
               </TableHeader>
               {/* TableBody disesuaikan dengan gaya laporan-akhir/laporan-pengajuan */}
               <TableBody className="divide-y divide-slate-200 dark:divide-slate-700">
@@ -265,16 +258,7 @@ export default function AdminUsersPage() {
                 ) : (
                   users.map((user) => (
                     <TableRow key={user.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
-                      <TableCell className="font-medium px-6 py-4 text-slate-800 dark:text-slate-100">{user.username}</TableCell>
-                      <TableCell className="px-6 py-4 text-slate-600 dark:text-slate-300">{user.email}</TableCell>
-                      <TableCell className="px-6 py-4 text-center"> {/* Added text-center */}
-                        <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor(user.role)}`}> {/* Added inline-block */}
-                          {user.role}
-                        </span>
-                      </TableCell>
-                      <TableCell className="px-6 py-4 text-slate-600 dark:text-slate-300">{user.domisili}</TableCell>
-                      <TableCell className="px-6 py-4 text-slate-500 dark:text-slate-400">{new Date(user.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</TableCell> {/* Ensure no whitespace/newline follows the last TableCell before TableRow closes */}
-                      <TableCell className="px-6 py-4 flex items-center"> {/* Added flex items-center */}
+                      <TableCell className="font-medium px-6 py-4 text-slate-800 dark:text-slate-100">{user.username}</TableCell><TableCell className="px-6 py-4 text-slate-600 dark:text-slate-300">{user.email}</TableCell><TableCell className="px-6 py-4 text-center"><span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor(user.role)}`}>{user.role}</span></TableCell><TableCell className="px-6 py-4 text-slate-600 dark:text-slate-300">{user.domisili}</TableCell><TableCell className="px-6 py-4 text-slate-500 dark:text-slate-400">{new Date(user.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</TableCell><TableCell className="px-6 py-4 flex items-center">
                         <Button
                           variant="outline"
                           size="icon"
@@ -291,7 +275,7 @@ export default function AdminUsersPage() {
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
-                      </TableCell>{/* Ensure no whitespace/newline follows the last TableCell before TableRow closes */}
+                      </TableCell>
                     </TableRow>
                   ))
                 )}

@@ -31,8 +31,8 @@ interface PengajuanData {
   dokumen_pengajuan: string;
   wilayah_penangkapan: string;
   status_dokumen: string;
-  status_verifikasi: string;
-  status_verifikasi_kabid: string;
+  status_verifikasi: string | null; // Memungkinkan null untuk status "Menunggu"
+  status_verifikasi_kabid: string | null; // Memungkinkan null untuk status "Menunggu"
   catatan_verifikasi: string | null;
   catatan_verifikasi_kabid: string | null;
   created_at: string;
@@ -815,7 +815,11 @@ export default function DataPengajuan() {
 
     return (
       (filterStatusAdmin === "" || p.status_verifikasi === filterStatusAdmin) &&
-      (filterStatusKabid === "" || p.status_verifikasi_kabid === filterStatusKabid) &&
+      (filterStatusKabid === "" || 
+        (filterStatusKabid === "Menunggu" 
+          ? (!p.status_verifikasi_kabid || p.status_verifikasi_kabid === "Menunggu") 
+          : p.status_verifikasi_kabid === filterStatusKabid)
+      ) &&
       (filterBulan === "" || pengajuanBulan === filterBulan) &&
       (filterTahun === "" || pengajuanTahun === filterTahun) &&
       (filterKabupatenKota === "" || p.kabupaten_kota === filterKabupatenKota) &&
@@ -837,8 +841,20 @@ export default function DataPengajuan() {
       return;
     }
     setIsExporting(true); // Use the correct state setter
+
+    // Transform data to match the expected type for the export function
+    const dataToExport = filteredPengajuanList.map(p => ({
+      ...p,
+      status_verifikasi: p.status_verifikasi ?? "Menunggu",
+      status_verifikasi_kabid: p.status_verifikasi_kabid ?? "Menunggu",
+      catatan_verifikasi: p.catatan_verifikasi ?? "",
+      catatan_verifikasi_kabid: p.catatan_verifikasi_kabid ?? "",
+      no_bast: p.no_bast ?? "",
+      dokumen_bast: p.dokumen_bast ?? "",
+    }));
+
     try {
-    const result = await generatePengajuanExcelReport(filteredPengajuanList, supabase); 
+    const result = await generatePengajuanExcelReport(dataToExport, supabase);
       if (result.success) {
         // Optional: alert("Laporan Excel berhasil dibuat dan diunduh."); // The utility already handles download
       } else {
@@ -875,8 +891,19 @@ export default function DataPengajuan() {
       return;
     }
     setIsExporting(true); // Use the correct state setter
+
+    // Transform data to match the expected type for the export function
+    const dataToExportApproved = approvedKabidData.map(p => ({
+      ...p,
+      status_verifikasi: p.status_verifikasi ?? "Menunggu",
+      status_verifikasi_kabid: p.status_verifikasi_kabid ?? "Menunggu", // This will be "Disetujui Sebagian" or "Disetujui Sepenuhnya"
+      catatan_verifikasi: p.catatan_verifikasi ?? "",
+      catatan_verifikasi_kabid: p.catatan_verifikasi_kabid ?? "",
+      no_bast: p.no_bast ?? "",
+      dokumen_bast: p.dokumen_bast ?? "",
+    }));
     try {
-  const result = await generatePengajuanExcelReport(approvedKabidData, supabase); 
+  const result = await generatePengajuanExcelReport(dataToExportApproved, supabase);
       if (!result.success) {
         alert(result.message || "Gagal membuat laporan Excel untuk data yang disetujui Kabid.");
       }
@@ -1040,13 +1067,7 @@ export default function DataPengajuan() {
                 <Table>
                   <TableHeader className="bg-sky-600 dark:bg-sky-700">
                     <TableRow>
-                      <TableHead className="text-white font-semibold w-[50px]">No.</TableHead> {/* Added No. column header */}
-                      <TableHead className="text-white font-semibold">Nama KUB</TableHead>
-                      <TableHead className="text-white font-semibold">Tgl. Pengajuan</TableHead>
-                      <TableHead className="text-white font-semibold">Wilayah</TableHead>
-                      <TableHead className="text-white font-semibold">Status Admin</TableHead>
-                      <TableHead className="text-white font-semibold">Status Kabid</TableHead>
-                      <TableHead className="text-white font-semibold text-center">Aksi</TableHead>
+                      <TableHead className="text-white font-semibold w-[50px]">No.</TableHead><TableHead className="text-white font-semibold">Nama KUB</TableHead><TableHead className="text-white font-semibold">Tgl. Pengajuan</TableHead><TableHead className="text-white font-semibold">Wilayah</TableHead><TableHead className="text-white font-semibold">Status Admin</TableHead><TableHead className="text-white font-semibold">Status Kabid</TableHead><TableHead className="text-white font-semibold text-center">Aksi</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody className="divide-y divide-slate-200 dark:divide-slate-700">
@@ -1056,36 +1077,7 @@ export default function DataPengajuan() {
                           className={`hover:bg-sky-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer ${selectedPengajuan?.id_pengajuan === item.id_pengajuan ? 'bg-sky-100 dark:bg-sky-700/60' : ''}`}
                           // onClick={() => handleViewDetail(item)} // Option 1: Click row to view detail
                         >
-                          <TableCell className="text-slate-600 dark:text-slate-300 py-3 px-4 text-center">{index + 1}</TableCell> {/* Added No. cell */}
-                          <TableCell className="font-medium text-slate-700 dark:text-slate-200 py-3 px-4">{item.nama_kub}</TableCell>
-                          <TableCell className="text-slate-600 dark:text-slate-300 py-3 px-4">
-                            {new Date(item.tanggal_pengajuan).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
-                          </TableCell>
-                          <TableCell className="text-slate-600 dark:text-slate-300 py-3 px-4">
-                            {item.wilayah_penangkapan === 'perairan_umum_daratan' ? 'Daratan' : 'Laut'}
-                          </TableCell>
-                          <TableCell className="py-3 px-4">
-                            <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap ${getStatusBadgeColor(item.status_verifikasi || 'Menunggu')}`}>
-                              {item.status_verifikasi || 'Menunggu'}
-                            </span>
-                          </TableCell>
-                          <TableCell className="py-3 px-4">
-                            {item.status_verifikasi_kabid ? (
-                              <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap ${getKabidStatusBadgeColor(item.status_verifikasi_kabid)} flex items-center`}>
-                                {item.status_verifikasi_kabid}
-                                {["Disetujui Sepenuhnya", "Disetujui Sebagian", "Ditolak"].includes(item.status_verifikasi_kabid) && (
-                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 ml-1 text-slate-500 dark:text-slate-400" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                                  </svg>
-                                )}
-                              </span>
-                            ) : (
-                              <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap ${getKabidStatusBadgeColor('Menunggu')}`}>
-                                Menunggu
-                              </span>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right py-3 px-4">
+                          <TableCell className="text-slate-600 dark:text-slate-300 py-3 px-4 text-center">{index + 1}</TableCell><TableCell className="font-medium text-slate-700 dark:text-slate-200 py-3 px-4">{item.nama_kub}</TableCell><TableCell className="text-slate-600 dark:text-slate-300 py-3 px-4">{new Date(item.tanggal_pengajuan).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</TableCell><TableCell className="text-slate-600 dark:text-slate-300 py-3 px-4">{item.wilayah_penangkapan === 'perairan_umum_daratan' ? 'Daratan' : 'Laut'}</TableCell><TableCell className="py-3 px-4"><span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap ${getStatusBadgeColor(item.status_verifikasi || 'Menunggu')}`}>{item.status_verifikasi || 'Menunggu'}</span></TableCell><TableCell className="py-3 px-4">{item.status_verifikasi_kabid ? (<span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap ${getKabidStatusBadgeColor(item.status_verifikasi_kabid)} flex items-center`}>{item.status_verifikasi_kabid}{["Disetujui Sepenuhnya", "Disetujui Sebagian", "Ditolak"].includes(item.status_verifikasi_kabid) && (<svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 ml-1 text-slate-500 dark:text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" /></svg>)}</span>) : (<span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap ${getKabidStatusBadgeColor('Menunggu')}`}>Menunggu</span>)}</TableCell><TableCell className="text-right py-3 px-4">
                             <div className="flex justify-end items-center space-x-1">
                               <Button
                                 variant="ghost"
@@ -1136,7 +1128,7 @@ export default function DataPengajuan() {
                                       <div className="flex justify-between items-start mb-2">
                                         <div>
                                           <h3 className="font-medium text-lg text-slate-800 dark:text-slate-100">{selectedPengajuan.nama_kub}</h3>
-                                          <div className="text-sm mt-1 text-slate-600 dark:text-slate-300">
+                                          <div className="text-sm mt-1 text-slate-600 dark:text-slate-300 break-all">
                                             <span className="font-medium text-slate-700 dark:text-slate-200">Alamat KUB:</span>{' '}
                                         {selectedPengajuan.alamat_kub || '-'}
                                           </div>
