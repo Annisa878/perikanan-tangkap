@@ -44,8 +44,8 @@ const VERIFICATION_STATUSES = {
 const DAFTAR_DOMISILI = [
   "Kab. Banyuasin", "Kab. Empat Lawang", "Kab. Muara Enim", "Kab. Musi Banyuasin", "Kab. Musi Rawas",
   "Kab. Musi Rawas Utara", "Kab. Ogan Ilir", "Kab. Ogan Komering Ilir", "Kab. Ogan Komering Ulu",
-  "Kab. Ogan Komering Ulu Selatan", "Kab. Ogan Komering Ulu Timur", "Kab. Penukal Abab Lematang Ilir",
-  "Kota Lubuk Linggau", "Kota Palembang", "Kota Pagaralam", "Kota Prabumulih"
+  "Kab. Ogan Komering Ulu Selatan", "Kab. Ogan Komering Ulu Timur", "Kab. Penukal Abab Lematang Ilir", // Corrected Pagar Alam
+  "Kota Lubuk Linggau", "Kota Palembang", "Kota Pagaralam", "Kota Prabumulih" // Changed "Kota Pagar Alam" to "Kota Pagaralam"
 ].sort();
 
 export default function VerifikasiMonitoringPage() {

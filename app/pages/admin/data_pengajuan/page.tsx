@@ -105,7 +105,7 @@ const KABUPATEN_KOTA_LIST = [
   "Ogan Komering Ulu Timur",
   "Penukal Abab Lematang Ilir",
   "Lubuklinggau",
-  "Pagar Alam",
+  "Pagaralam",
   "Palembang",
   "Prabumulih"
 ].sort(); // Sort alphabetically for display
