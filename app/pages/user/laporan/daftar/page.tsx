@@ -325,7 +325,7 @@ export default function DaftarLaporanPage() {
                                             KUB
                                         </th>
                                         <th scope="col" className="px-3 py-3.5 text-left text-xs font-semibold text-white uppercase tracking-wider max-w-xs"> {/* Reduced padding, added max-width */}
-                                            Nelayan
+                                            Nama Ketua
                                         </th>
                                         <th scope="col" className="px-3 py-3.5 text-left text-xs font-semibold text-white uppercase tracking-wider"> {/* Reduced padding */}
                                             Bulan

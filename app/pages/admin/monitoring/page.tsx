@@ -415,7 +415,8 @@ export default function AdminMonitoringPage() {
                 <Table>
                     <TableHeader className="bg-sky-600 dark:bg-sky-700">
                         <TableRow>
-                            <TableHead className="text-white font-semibold">Nama Anggota</TableHead>
+                            <TableHead className="text-white font-semibold w-12">No.</TableHead> {/* Added No. column header */}
+                            <TableHead className="text-white font-semibold">Nama Ketua</TableHead>
                             <TableHead className="text-white font-semibold">Nama KUB</TableHead>
                             <TableHead className="text-white font-semibold">Trip</TableHead>
                             <TableHead className="text-white font-semibold">BBM</TableHead>
@@ -424,21 +425,22 @@ export default function AdminMonitoringPage() {
                             <TableHead className="text-white font-semibold">Bulan</TableHead>
                             <TableHead className="text-white font-semibold">Tahun</TableHead>
                             {/* Kolom baru untuk Status Kabid */}
-                            <TableHead className="text-white font-semibold">Status Kabid</TableHead>
-                            <TableHead className="text-right text-white font-semibold">Aksi</TableHead>
+                            <TableHead className="text-white font-semibold text-center">Status Kabid</TableHead>
+                            <TableHead className="text-center text-white font-semibold">Aksi</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody className="divide-y divide-slate-200 dark:divide-slate-700">
                         {filteredMonitoringData.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={10} className="text-center py-10 text-slate-500 dark:text-slate-400">
+                                <TableCell colSpan={11} className="text-center py-10 text-slate-500 dark:text-slate-400">
                                     Tidak ada data monitoring yang sesuai dengan filter.
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            filteredMonitoringData.map((monitoring) => (
+                            filteredMonitoringData.map((monitoring, index) => ( // Added index for numbering
                                 <React.Fragment key={monitoring.id}>
                                     <TableRow className="hover:bg-sky-50 dark:hover:bg-slate-700/50 transition-colors">
+                                        <TableCell className="text-slate-600 dark:text-slate-300 text-center">{index + 1}</TableCell> {/* Added No. cell */}
                                         <TableCell className="font-medium text-slate-700 dark:text-slate-200">{monitoring.nama_anggota}</TableCell>
                                         <TableCell className="text-slate-600 dark:text-slate-300">{monitoring.kub}</TableCell>
                                         <TableCell className="text-slate-600 dark:text-slate-300">{monitoring.trip} hari/jam</TableCell>
@@ -450,13 +452,13 @@ export default function AdminMonitoringPage() {
                                         <TableCell className="text-slate-600 dark:text-slate-300">{monitoring.bulan}</TableCell>
                                         <TableCell className="text-slate-600 dark:text-slate-300">{monitoring.tahun}</TableCell>
                                         {/* Menampilkan Status Kabid */}
-                                        <TableCell>
+                                        <TableCell className="text-center">
                                             <Badge variant={getKabidStatusBadgeVariant(monitoring.status_verifikasi_kabid)}>
                                                 {monitoring.status_verifikasi_kabid || KABID_VERIFICATION_STATUSES.PENDING}
                                             </Badge>
                                         </TableCell>
-                                        <TableCell className="text-right">
-                                            <div className="flex justify-end items-center space-x-1">
+                                        <TableCell className="text-center">
+                                            <div className="flex justify-center items-center space-x-1">
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
@@ -489,7 +491,7 @@ export default function AdminMonitoringPage() {
                                     </TableRow>
                                     {expandedRows[monitoring.id] && (
                                     <TableRow className="bg-sky-50/50 dark:bg-slate-700/30 hover:bg-sky-100/70 dark:hover:bg-slate-700/50">
-                                        <TableCell colSpan={10}>
+                                        <TableCell colSpan={11}> {/* Adjusted colSpan */}
                                             <div className="p-4 bg-white dark:bg-slate-700/60 rounded-md m-1 shadow-inner">
                                                 <h4 className="font-semibold mb-3 text-sky-700 dark:text-sky-300">Detail Produksi</h4>
                                                 {monitoring.detail_produksi && monitoring.detail_produksi.length > 0 ? (
