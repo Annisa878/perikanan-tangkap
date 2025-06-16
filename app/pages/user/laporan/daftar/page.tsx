@@ -322,7 +322,7 @@ export default function DaftarLaporanPage() {
                                             Tgl Input
                                         </th>
                                         <th scope="col" className="px-3 py-3.5 text-left text-xs font-semibold text-white uppercase tracking-wider max-w-xs"> {/* Reduced padding, added max-width */}
-                                            KUB
+                                            Nama KUB
                                         </th>
                                         <th scope="col" className="px-3 py-3.5 text-left text-xs font-semibold text-white uppercase tracking-wider max-w-xs"> {/* Reduced padding, added max-width */}
                                             Nama Ketua
