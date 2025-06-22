@@ -66,7 +66,7 @@ const exportToExcel = async (domisili: string = '', kub: string = '', bulan: str
     // Atur lebar kolom
     worksheet.columns = [
         { width: 5 },   // No
-        { width: 20 },  // Nama Anggota
+        { width: 20 },  // Nama Ketua
         { width: 15 },  // Trip
         { width: 10 },  // Jumlah BBM - Jenis
         { width: 10 },  // Jumlah BBM - Liter
@@ -127,7 +127,7 @@ const exportToExcel = async (domisili: string = '', kub: string = '', bulan: str
 
     // Header tabel
     const headerRow = worksheet.addRow([
-        'No', 'Nama Anggota', 'Trip (hari/jam)', 
+        'No', 'Nama Ketua', 'Trip (hari/jam)', 
         'Jenis', 'Liter', 
         'Daerah Penangkapan', 
         'Produksi (kg)',
@@ -139,7 +139,7 @@ const exportToExcel = async (domisili: string = '', kub: string = '', bulan: str
     // Definisikan array untuk kolom yang perlu di-merge
     const mergeColumns = [
         { col: 'A', text: 'No' },
-        { col: 'B', text: 'Nama Anggota' },
+        { col: 'B', text: 'Nama Ketua' },
         { col: 'C', text: 'Trip (hari/jam)' },
         { col: 'F', text: 'Daerah Penangkapan' },
         { col: 'G', text: 'Produksi (kg)' },

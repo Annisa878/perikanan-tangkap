@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
-import { Edit2, Save, X, Loader2, UserCircle2, Mail, Briefcase, MapPin, CalendarDays } from "lucide-react";
+import { Edit2, Save, X, Loader2, UserCircle2, Mail, Briefcase, MapPin, CalendarDays, Lock, Eye, EyeOff } from "lucide-react";
 import Image from "next/image";
 
 const supabase = createClient();
@@ -22,6 +22,22 @@ export default function ProfilePage() {
     username: "",
     domisili: ""
   });
+
+  // Password change states
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: ""
+  });
+  const [showPasswords, setShowPasswords] = useState({
+    current: false,
+    new: false,
+    confirm: false
+  });
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordSuccess, setPasswordSuccess] = useState("");
 
   useEffect(() => {
     async function getUser() {
@@ -115,9 +131,97 @@ export default function ProfilePage() {
     }
   };
 
+  // Password change functions
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setPasswordForm(prev => ({ ...prev, [name]: value }));
+    // Clear errors when user starts typing
+    if (passwordError) setPasswordError("");
+    if (passwordSuccess) setPasswordSuccess("");
+  };
+
+  const togglePasswordVisibility = (field: 'current' | 'new' | 'confirm') => {
+    setShowPasswords(prev => ({ ...prev, [field]: !prev[field] }));
+  };
+
+  const handlePasswordSubmit = async () => {
+    if (!user) return;
+
+    // Validation
+    if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
+      setPasswordError("Semua field harus diisi");
+      return;
+    }
+
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setPasswordError("Password baru dan konfirmasi password tidak cocok");
+      return;
+    }
+
+    if (passwordForm.newPassword.length < 6) {
+      setPasswordError("Password baru minimal 6 karakter");
+      return;
+    }
+
+    try {
+      setPasswordSaving(true);
+      setPasswordError("");
+
+      // First, verify current password by trying to sign in
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: userData.email,
+        password: passwordForm.currentPassword
+      });
+
+      if (signInError) {
+        setPasswordError("Password lama tidak benar");
+        return;
+      }
+
+      // Update password
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: passwordForm.newPassword
+      });
+
+      if (updateError) {
+        setPasswordError("Gagal mengubah password: " + updateError.message);
+        return;
+      }
+
+      // Success
+      setPasswordSuccess("Password berhasil diubah");
+      setPasswordForm({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: ""
+      });
+      setIsChangingPassword(false);
+
+      // Clear success message after 3 seconds
+      setTimeout(() => setPasswordSuccess(""), 3000);
+
+    } catch (error) {
+      console.error("Error changing password:", error);
+      setPasswordError("Terjadi kesalahan saat mengubah password");
+    } finally {
+      setPasswordSaving(false);
+    }
+  };
+
+  const handleCancelPasswordChange = () => {
+    setIsChangingPassword(false);
+    setPasswordForm({
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: ""
+    });
+    setPasswordError("");
+    setPasswordSuccess("");
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-sky-100 via-teal-50 to-cyan-100 dark:from-slate-900 dark:via-sky-950 dark:to-teal-900">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-blue-100 to-cyan-200 dark:from-blue-950 dark:via-cyan-900 dark:to-slate-900">
         <Loader2 className="h-10 w-10 text-sky-600 dark:text-sky-400 animate-spin" />
         <span className="ml-3 text-lg text-slate-700 dark:text-slate-300">Memuat profil...</span>
       </div>
@@ -126,7 +230,7 @@ export default function ProfilePage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-sky-100 via-teal-50 to-cyan-100 dark:from-slate-900 dark:via-sky-950 dark:to-teal-900 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-blue-100 to-cyan-200 dark:from-blue-950 dark:via-cyan-900 dark:to-slate-900 p-4">
         <div className="text-center p-8 bg-white/80 dark:bg-slate-800/80 backdrop-blur-md shadow-2xl rounded-xl border border-slate-200 dark:border-slate-700 max-w-md">
           <UserCircle2 className="w-16 h-16 mx-auto text-red-500 dark:text-red-400 mb-4" />
           <h2 className="text-2xl font-semibold text-red-600 dark:text-red-400 mb-3">Anda Belum Login</h2>
@@ -153,13 +257,13 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-sky-100 via-teal-50 to-cyan-100 dark:from-slate-900 dark:via-sky-950 dark:to-teal-900 py-8 md:py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-b from-blue-100 to-cyan-200 dark:from-blue-950 dark:via-cyan-900 dark:to-slate-900 py-8 md:py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto">
         <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-lg shadow-xl rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700/80">
           {/* Header with banner and thumbnail overlay */}
           <div className="relative h-40">
-            {/* Background gradient */}
-            <div className="absolute inset-0 bg-gradient-to-r from-sky-500 via-cyan-400 to-teal-500 dark:from-sky-700 dark:via-cyan-600 dark:to-teal-700"></div>
+            {/* Ocean-themed background gradient */}
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-cyan-500 to-teal-600 dark:from-blue-800 dark:via-cyan-700 dark:to-teal-800"></div>
             
             {/* Thumbnail overlay */}
             <div className="absolute inset-0">
@@ -176,7 +280,7 @@ export default function ProfilePage() {
             {/* Avatar position */}
             <div className="absolute -bottom-12 left-6 md:left-8">
               <div className="rounded-full bg-white dark:bg-slate-700 p-1.5 shadow-lg border-2 border-white dark:border-slate-600">
-                <div className="h-24 w-24 rounded-full bg-sky-100 dark:bg-sky-800 flex items-center justify-center text-3xl font-bold text-sky-600 dark:text-sky-300">
+                <div className="h-24 w-24 rounded-full bg-blue-200 dark:bg-blue-800 flex items-center justify-center text-3xl font-bold text-blue-600 dark:text-blue-300">
                   {getInitials()}
                 </div>
               </div>
@@ -223,6 +327,13 @@ export default function ProfilePage() {
                 </div>
               )}
             </div>
+            
+            {/* Success/Error Messages */}
+            {passwordSuccess && (
+              <div className="mb-6 p-4 bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded-lg">
+                <p className="text-green-700 dark:text-green-300">{passwordSuccess}</p>
+              </div>
+            )}
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
               {/* User Details Section */}
@@ -314,6 +425,136 @@ export default function ProfilePage() {
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* Password Change Section */}
+            <div className="mt-6 bg-white dark:bg-slate-700/50 rounded-lg p-6 shadow-md border border-slate-200 dark:border-slate-600/70">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100 flex items-center">
+                  <Lock className="mr-2 text-blue-700 dark:text-blue-400" size={20}/>
+                  Keamanan
+                </h2>
+                
+                {!isChangingPassword ? (
+                  <button 
+                    onClick={() => setIsChangingPassword(true)}
+                    className="flex items-center px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white font-medium rounded-lg shadow-sm hover:shadow-md transition-all duration-300"
+                  >
+                    <Lock size={16} className="mr-2" />
+                    Ganti Password
+                  </button>
+                ) : (
+                  <div className="flex space-x-2">
+                    <button 
+                      onClick={handleCancelPasswordChange}
+                      className="flex items-center px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 dark:bg-slate-600 dark:hover:bg-slate-500 dark:text-slate-200 font-medium rounded-lg shadow-sm hover:shadow-md transition-all duration-300"
+                    >
+                      <X size={16} className="mr-2" />
+                      Batal
+                    </button>
+                    <button 
+                      onClick={handlePasswordSubmit}
+                      disabled={passwordSaving}
+                      className="flex items-center px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white font-medium rounded-lg shadow-sm hover:shadow-md transition-all duration-300 disabled:bg-blue-500 dark:disabled:bg-blue-800"
+                    >
+                      {passwordSaving ? (
+                        <Loader2 size={16} className="mr-2 animate-spin" />
+                      ) : (
+                        <Save size={16} className="mr-2" />
+                      )}
+                      Simpan Password
+                    </button>
+                  </div>
+                )}
+              </div>
+              
+              {isChangingPassword ? (
+                <div className="space-y-4">
+                  {/* Error Message */}
+                  {passwordError && (
+                    <div className="p-3 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-lg">
+                      <p className="text-red-700 dark:text-red-300 text-sm">{passwordError}</p>
+                    </div>
+                  )}
+                  
+                  {/* Current Password */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1">
+                      Password Lama
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showPasswords.current ? "text" : "password"}
+                        name="currentPassword"
+                        value={passwordForm.currentPassword}
+                        onChange={handlePasswordChange}
+                        className="w-full px-3 py-2 pr-10 border border-slate-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                        placeholder="Masukkan password lama"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => togglePasswordVisibility('current')}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                      >
+                        {showPasswords.current ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {/* New Password */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1">
+                      Password Baru
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showPasswords.new ? "text" : "password"}
+                        name="newPassword"
+                        value={passwordForm.newPassword}
+                        onChange={handlePasswordChange}
+                        className="w-full px-3 py-2 pr-10 border border-slate-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                        placeholder="Masukkan password baru (min. 6 karakter)"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => togglePasswordVisibility('new')}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                      >
+                        {showPasswords.new ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {/* Confirm New Password */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1">
+                      Konfirmasi Password Baru
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showPasswords.confirm ? "text" : "password"}
+                        name="confirmPassword"
+                        value={passwordForm.confirmPassword}
+                        onChange={handlePasswordChange}
+                        className="w-full px-3 py-2 pr-10 border border-slate-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                        placeholder="Konfirmasi password baru"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => togglePasswordVisibility('confirm')}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                      >
+                        {showPasswords.confirm ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-slate-600 dark:text-slate-400">
+                  <p>Klik tombol "Ganti Password" untuk mengubah password akun Anda.</p>
+                  <p className="text-sm mt-2">Pastikan password baru Anda kuat dan aman.</p>
+                </div>
+              )}
             </div>
           </div>
         </div>

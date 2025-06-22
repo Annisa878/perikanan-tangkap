@@ -57,7 +57,7 @@ const TableRow = React.forwardRef<
   HTMLTableRowElement,
   React.HTMLAttributes<HTMLTableRowElement>
 >(({ className, children, ...props }, ref) => ( // Destructure children
-  <tr
+  <tr // Removed whitespace here
     ref={ref}
     className={cn(
       // Adjusted default styles for better integration with the theme

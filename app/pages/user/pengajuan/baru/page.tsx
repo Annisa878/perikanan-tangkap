@@ -30,6 +30,13 @@ interface UsulanItem {
   jumlah_alat: number;
 }
 
+interface KubEligibilityStatus {
+  checking: boolean;
+  eligible: boolean;
+  message: string | null;
+}
+
+
 export default function PengajuanForm() {
   const supabase = createClient();
   const router = useRouter();
@@ -39,6 +46,11 @@ export default function PengajuanForm() {
   const [formError, setFormError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [usulanItems, setUsulanItems] = useState<UsulanItem[]>([]);
+  const [kubEligibilityStatus, setKubEligibilityStatus] = useState<KubEligibilityStatus>({
+    checking: false,
+    eligible: true,
+    message: null,
+  });
 
   const addUsulanItem = () => {
     const alatYangDiinput = formData.nama_alat === "Lainnya" ? formData.nama_alat_lainnya.trim() : formData.nama_alat;
@@ -196,6 +208,62 @@ export default function PengajuanForm() {
     }));
   }, [formData.wilayah_penangkapan]);
 
+  // useEffect to check KUB eligibility when nama_kub changes
+  useEffect(() => {
+    const checkKubEligibility = async (kubName: string) => {
+      setKubEligibilityStatus({ checking: true, eligible: true, message: null });
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        // Should not happen if user is creating a new submission, but good to check
+        setKubEligibilityStatus({ checking: false, eligible: true, message: null });
+        return;
+      }
+
+      try {
+        const { data: existingPengajuan, error } = await supabase
+          .from('pengajuan')
+          .select(`
+            status_verifikasi,
+            status_verifikasi_kabid,
+            kelompok!inner(nama_kub)
+          `)
+          .eq('kelompok.nama_kub', kubName)
+          .eq('user_id', user.id);
+
+        if (error) throw error;
+
+        const adminApprovedStatus = 'Diterima';
+        const kabidApprovedStatuses = ['Disetujui Sepenuhnya', 'Disetujui Sebagian'];
+
+        if (existingPengajuan && existingPengajuan.length > 0) {
+          for (const pengajuan of existingPengajuan as any[]) { // Cast to any to access nested props easily
+            if (pengajuan.status_verifikasi === adminApprovedStatus &&
+                kabidApprovedStatuses.includes(pengajuan.status_verifikasi_kabid)) {
+              setKubEligibilityStatus({
+                checking: false,
+                eligible: false,
+                message: `KUB "${kubName}" sudah memiliki pengajuan yang disetujui sepenuhnya dan tidak dapat membuat pengajuan baru saat ini.`,
+              });
+              return;
+            }
+          }
+        }
+        setKubEligibilityStatus({ checking: false, eligible: true, message: null });
+      } catch (error: any) {
+        console.error("Error checking KUB eligibility:", error);
+        setKubEligibilityStatus({ checking: false, eligible: true, message: "Gagal memeriksa status KUB." }); // Allow submission if check fails
+      }
+    };
+
+    if (formData.nama_kub && formData.nama_kub.trim() !== "") {
+      const timeoutId = setTimeout(() => checkKubEligibility(formData.nama_kub.trim()), 500); // Debounce check
+      return () => clearTimeout(timeoutId);
+    } else {
+      setKubEligibilityStatus({ checking: false, eligible: true, message: null });
+    }
+  }, [formData.nama_kub, supabase]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     
@@ -322,6 +390,14 @@ export default function PengajuanForm() {
     setIsLoading(true);
     setFormError(null);
     setSuccessMessage(null);
+
+    // Final check for KUB eligibility before submitting
+    if (!kubEligibilityStatus.eligible) {
+      alert(kubEligibilityStatus.message || "KUB ini tidak dapat membuat pengajuan baru saat ini.");
+      setFormError(kubEligibilityStatus.message);
+      setIsLoading(false);
+      return;
+    }
 
     console.log("Form submission started.");
     if (!formData.nama_kub || !formData.alamat_kub || !formData.kabupaten_kota || !formData.wilayah_penangkapan || !formData.tanggal_pengajuan) {
@@ -515,6 +591,13 @@ export default function PengajuanForm() {
                 {successMessage}
               </div>
             )}
+            {/* KUB Eligibility Message */}
+            {kubEligibilityStatus.message && (
+              <div className={`p-4 text-sm rounded-lg border ${kubEligibilityStatus.eligible ? 'text-green-700 bg-green-100 border-green-300 dark:bg-green-900/30 dark:text-green-300 dark:border-green-700' : 'text-yellow-700 bg-yellow-100 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-700'}`}>
+                {kubEligibilityStatus.message}
+              </div>
+            )}
+
 
             {/* Main Grid Layout */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -543,6 +626,11 @@ export default function PengajuanForm() {
                         className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 transition-all"
                         required
                       />
+                      {kubEligibilityStatus.checking && (
+                        <p className="text-xs text-sky-600 dark:text-sky-400 mt-1 animate-pulse">
+                          Memeriksa status KUB...
+                        </p>
+                      )}
                     </div>
                     
                     <div>
@@ -863,8 +951,8 @@ export default function PengajuanForm() {
             <div className="pt-6 border-t border-slate-200 dark:border-slate-700">
               <button
                 type="submit"
-                disabled={isLoading}
-                className="w-full flex justify-center items-center px-8 py-4 bg-gradient-to-r from-sky-600 via-cyan-500 to-teal-500 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl hover:from-sky-700 hover:to-teal-600 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 dark:ring-offset-slate-800 transition-all disabled:opacity-70"
+                disabled={isLoading || kubEligibilityStatus.checking || !kubEligibilityStatus.eligible}
+                className="w-full flex justify-center items-center px-8 py-4 bg-gradient-to-r from-sky-600 via-cyan-500 to-teal-500 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl hover:from-sky-700 hover:to-teal-600 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 dark:ring-offset-slate-800 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 {isLoading ? "Memproses Pengajuan..." : "Kirim Pengajuan"}
               </button>
