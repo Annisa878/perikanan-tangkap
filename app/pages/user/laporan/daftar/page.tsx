@@ -3,7 +3,7 @@
 import React from "react"; // Add this import
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Ship } from "lucide-react"; // Import Ship icon
+import { Ship, ChevronDown, ChevronRight } from "lucide-react"; // Import icons
 import { createClient } from "@/utils/supabase/client";
 
 interface DetailProduksi {
@@ -381,10 +381,13 @@ export default function DaftarLaporanPage() {
                                                 <td className="px-3 py-4 text-sm text-slate-500 dark:text-slate-400 text-center"> {/* Reduced padding, removed whitespace-nowrap */}
                                                     <div className="flex justify-center items-center space-x-2">
                                                         <button
-                                                            onClick={() => toggleDetailProduksi(item.id)}
-                                                            className="text-sky-600 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-300 font-medium"
+                                                            onClick={() => toggleDetailProduksi(item.id)} // This now toggles the detail view
+                                                            className="text-sky-600 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-300 font-medium flex items-center"
                                                         >
-                                                            Detail
+                                                            <span className="mr-1 text-xs">
+                                                                {expandedRowId === item.id ? "Tutup" : "Detail"}
+                                                            </span>
+                                                            {expandedRowId === item.id ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                                                         </button>
                                                         <button
                                                             onClick={() => handleEditClick(item.id)}
@@ -402,40 +405,51 @@ export default function DaftarLaporanPage() {
                                                 </td>
                                             </tr>
                                             {expandedRowId === item.id && (
-                                                <tr key={`${item.id}-detail`} className="bg-sky-50 dark:bg-sky-800/50">
-                                                    <td colSpan={10} className="px-6 py-4">
-                                                        <div className="mb-3">
-                                                            <h4 className="text-md font-semibold text-sky-700 dark:text-sky-300">Detail Produksi:</h4>
-                                                            {item.jenis_bbm && (
-                                                                <p className="text-sm text-sky-600 dark:text-sky-400 mt-1">Jenis BBM: <span className="font-medium text-sky-700 dark:text-sky-300">{item.jenis_bbm}</span></p>
-                                                            )}
-                                                        </div>
-                                                        {item.detail_produksi && item.detail_produksi.length > 0 ? (
-                                                            <div className="overflow-x-auto rounded-lg shadow-sm border border-sky-200 dark:border-sky-700">
-                                                                <table className="min-w-full divide-y divide-sky-200 dark:divide-sky-700">
-                                                                    <thead className="bg-sky-100 dark:bg-sky-700">
-                                                                        <tr>
-                                                                            <th className="px-4 py-2.5 text-left text-xs font-medium text-sky-600 dark:text-sky-300 uppercase">Nama Ikan</th>
-                                                                            <th className="px-4 py-2.5 text-right text-xs font-medium text-sky-600 dark:text-sky-300 uppercase">Jumlah (Kg)</th>
-                                                                            <th className="px-4 py-2.5 text-right text-xs font-medium text-sky-600 dark:text-sky-300 uppercase">Harga/Kg (Rp)</th>
-                                                                            <th className="px-4 py-2.5 text-right text-xs font-medium text-sky-600 dark:text-sky-300 uppercase">Subtotal (Rp)</th>
-                                                                        </tr>
-                                                                    </thead>
-                                                                    <tbody className="bg-white dark:bg-slate-800 divide-y divide-slate-200 dark:divide-slate-700">
-                                                                        {item.detail_produksi.map(detail => (
-                                                                            <tr key={detail.id}>
-                                                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-800 dark:text-slate-200">{detail.nama_ikan}</td>
-                                                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300 text-right">{formatNumber(detail.jumlah_kg)}</td>
-                                                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300 text-right">{formatNumber(detail.harga_per_kg)}</td>
-                                                                                <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300 text-right">{formatNumber(detail.jumlah_kg * detail.harga_per_kg)}</td>
-                                                                            </tr>
-                                                                        ))}
-                                                                    </tbody>
-                                                                </table> {/* Added closing table tag */}
+                                                <tr key={`${item.id}-detail`} className="bg-sky-50/30 dark:bg-slate-700/30">
+                                                    <td colSpan={10} className="p-4">
+                                                        <div className="p-4 bg-white dark:bg-slate-800 border border-sky-200 dark:border-sky-600 rounded-lg shadow-inner">
+                                                            {/* Section 1: Detail Laporan Umum */}
+                                                            <div className="mb-4 p-3 border border-sky-100 dark:border-sky-700 rounded-lg bg-slate-50 dark:bg-slate-700/50">
+                                                                <h3 className="font-medium text-lg text-slate-800 dark:text-slate-100 mb-2">Detail Laporan</h3>
+                                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                                                                    <p className="text-slate-600 dark:text-slate-300"><span className="font-medium text-slate-700 dark:text-slate-200">Daerah Penangkapan:</span> {item.daerah_penangkapan || '-'}</p>
+                                                                    <p className="text-slate-600 dark:text-slate-300"><span className="font-medium text-slate-700 dark:text-slate-200">Jenis BBM:</span> {item.jenis_bbm || '-'}</p>
+                                                                    <p className="text-slate-600 dark:text-slate-300"><span className="font-medium text-slate-700 dark:text-slate-200">Domisili:</span> {item.domisili || '-'}</p>
+                                                                    <p className="text-slate-600 dark:text-slate-300"><span className="font-medium text-slate-700 dark:text-slate-200">Keterangan:</span> {item.keterangan || '-'}</p>
+                                                                </div>
                                                             </div>
-                                                        ) : (
-                                                            <p className="text-sm text-sky-600 dark:text-sky-400">Tidak ada detail produksi untuk laporan ini.</p>
-                                                        )}
+
+                                                            {/* Section 2: Detail Produksi */}
+                                                            <div className="p-3 border border-sky-100 dark:border-sky-700 rounded-lg bg-slate-50 dark:bg-slate-700/50">
+                                                                <h4 className="font-semibold text-md mb-2 text-sky-700 dark:text-sky-300">Rincian Produksi</h4>
+                                                                {item.detail_produksi && item.detail_produksi.length > 0 ? (
+                                                                    <div className="overflow-x-auto rounded-lg shadow-sm border border-sky-200 dark:border-sky-700">
+                                                                        <table className="min-w-full divide-y divide-sky-200 dark:divide-sky-700">
+                                                                            <thead className="bg-sky-100 dark:bg-sky-700">
+                                                                                <tr>
+                                                                                    <th className="px-4 py-2.5 text-left text-xs font-medium text-sky-600 dark:text-sky-300 uppercase">Nama Ikan</th>
+                                                                                    <th className="px-4 py-2.5 text-right text-xs font-medium text-sky-600 dark:text-sky-300 uppercase">Jumlah (Kg)</th>
+                                                                                    <th className="px-4 py-2.5 text-right text-xs font-medium text-sky-600 dark:text-sky-300 uppercase">Harga/Kg (Rp)</th>
+                                                                                    <th className="px-4 py-2.5 text-right text-xs font-medium text-sky-600 dark:text-sky-300 uppercase">Subtotal (Rp)</th>
+                                                                                </tr>
+                                                                            </thead>
+                                                                            <tbody className="bg-white dark:bg-slate-800 divide-y divide-slate-200 dark:divide-slate-700">
+                                                                                {item.detail_produksi.map(detail => (
+                                                                                    <tr key={detail.id}>
+                                                                                        <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-800 dark:text-slate-200">{detail.nama_ikan}</td>
+                                                                                        <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300 text-right">{formatNumber(detail.jumlah_kg)}</td>
+                                                                                        <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300 text-right">{formatNumber(detail.harga_per_kg)}</td>
+                                                                                        <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300 text-right">{formatNumber(detail.jumlah_kg * detail.harga_per_kg)}</td>
+                                                                                    </tr>
+                                                                                ))}
+                                                                            </tbody>
+                                                                        </table>
+                                                                    </div>
+                                                                ) : (
+                                                                    <p className="text-sm text-slate-600 dark:text-slate-400">Tidak ada detail produksi untuk laporan ini.</p>
+                                                                )}
+                                                            </div>
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             )}

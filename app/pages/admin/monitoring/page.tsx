@@ -1,7 +1,5 @@
 "use client";
-
-import React from "react";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -27,7 +25,7 @@ import {
 import { ChevronDown, ChevronRight, Ship } from "lucide-react"; // Added Ship
 import { Badge } from "@/components/ui/badge"; // Import Badge
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"; // Import Alert components
-import { Domisili, Bulan } from "@/app/lib/enums"; // Import Domisili and Bulan enums
+import { DOMISILI_LIST, Domisili, BULAN_LIST, Bulan } from "@/app/lib/enums"; // Import Domisili, BULAN_LIST, and Bulan type
 import exportToExcel from "@/utils/exportToExcel";
 
 // DetailProduksi interface remains the same
@@ -105,8 +103,8 @@ export default function AdminMonitoringPage() {
         daerah_penangkapan: '',
         keterangan: '',
         created_at: '',
-        domisili: Domisili.KotaPalembang, // Default value
-        bulan: Bulan.Januari, // Default value
+        domisili: "Kota Palembang", // Default value
+        bulan: "Januari", // Default value, now a string literal
         tahun: new Date().getFullYear(),
         detail_produksi: []
     });
@@ -340,7 +338,7 @@ export default function AdminMonitoringPage() {
                             className="w-full px-3 py-2 border border-sky-300 dark:border-sky-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-sky-500 focus:border-sky-500 transition-colors"
                     >
                         <option value="">Semua Domisili</option>
-                        {Object.values(Domisili).map((domisili) => (
+                        {DOMISILI_LIST.map((domisili) => (
                             <option key={domisili} value={domisili}>
                                 {domisili}
                             </option>
@@ -356,7 +354,7 @@ export default function AdminMonitoringPage() {
                             className="w-full px-3 py-2 border border-sky-300 dark:border-sky-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-sky-500 focus:border-sky-500 transition-colors"
                     >
                         <option value="">Semua Bulan</option>
-                        {Object.values(Bulan).map((bulan) => (
+                        {BULAN_LIST.map((bulan) => (
                             <option key={bulan} value={bulan}>
                                 {bulan}
                             </option>
@@ -638,7 +636,7 @@ export default function AdminMonitoringPage() {
                                         onChange={handleInputChange}
                                         className="w-full mt-1 px-3 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 rounded-lg text-sm focus:ring-sky-500 focus:border-sky-500"
                                     >
-                                        {Object.values(Domisili).map((domisili) => (
+                                        {DOMISILI_LIST.map((domisili) => (
                                             <option key={domisili} value={domisili}>
                                                 {domisili}
                                             </option>
@@ -654,7 +652,7 @@ export default function AdminMonitoringPage() {
                                         onChange={handleInputChange}
                                         className="w-full mt-1 px-3 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 rounded-lg text-sm focus:ring-sky-500 focus:border-sky-500"
                                     >
-                                        {Object.values(Bulan).map((bulan) => (
+                                        {BULAN_LIST.map((bulan) => (
                                             <option key={bulan} value={bulan}>
                                                 {bulan}
                                             </option>

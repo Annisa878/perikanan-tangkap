@@ -1,7 +1,7 @@
 // pages/user/pengajuan/status/page.tsx
 
-"use client";
-import { useEffect, useState, useCallback, Fragment } from "react"; // Added Fragment
+"use client"; // Client Component directive
+import { useEffect, useState, useCallback, Fragment } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { Ship } from "lucide-react"; // Import Ship icon
 import Link from "next/link";
@@ -27,6 +27,38 @@ interface Pengajuan {
   kelompok?: {
     nama_kub: string;
   };
+}
+
+// New interfaces for detail data, copied from admin/data_pengajuan/page.tsx
+interface DetailUsulan {
+  id_detail_usulan: string; // Assuming this might also be UUID or a string ID
+  pengajuan_id: string;   // To match PengajuanData.id_pengajuan (UUID)
+  nama_alat: string;
+  jumlah_alat: number;
+  harga_satuan: number;
+  harga_total: number;
+}
+
+interface AnggotaKelompok {
+  id_anggota: string; // Assuming this might also be UUID or a string ID
+  kelompok_id: string; // To match PengajuanData.kelompok_id (UUID)
+  nama_anggota: string;
+  jabatan: string;
+  nik: string;
+  no_kusuka: string;
+}
+
+interface DokumenChecklist {
+  proposal: boolean;
+  surat_usulan: boolean;
+  foto_ktp: boolean;
+  surat_ktm: boolean;
+  foto_rumah: boolean;
+  foto_alat_tangkap: boolean;
+  bpjs: boolean;
+  kis: boolean;
+  kartu_kusuka: boolean;
+  foto_kapal: boolean;
 }
 
 interface AvailableBulan {
@@ -58,7 +90,16 @@ export default function PengajuanList() {
   const [filterTahun, setFilterTahun] = useState<string>("");
   const [filterBulan, setFilterBulan] = useState<string>("");
   const [availableTahun, setAvailableTahun] = useState<string[]>([]);
-  const [availableBulan, setAvailableBulan] = useState<AvailableBulan[]>(allMonths);
+  const [availableBulan, setAvailableBulan] = useState<AvailableBulan[]>(allMonths); // Keep this
+
+  // New states for detail dropdown functionality
+  const [selectedPengajuanForDetail, setSelectedPengajuanForDetail] = useState<Pengajuan | null>(null);
+  const [detailUsulan, setDetailUsulan] = useState<DetailUsulan[]>([]);
+  const [anggotaKelompok, setAnggotaKelompok] = useState<AnggotaKelompok[]>([]);
+  const [isDetailLoading, setIsDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
+  const [showDocumentModal, setShowDocumentModal] = useState(false);
+  const [documentUrl, setDocumentUrl] = useState<string | null>(null);
 
   const fetchPengajuan = useCallback(async () => {
     setIsLoading(true);
@@ -157,6 +198,105 @@ export default function PengajuanList() {
       setIsLoading(false);
     }
   }, [supabase, filterNamaKUB, filterTahun, filterBulan]); // Updated dependency
+
+  // Function to fetch detail data for a specific pengajuan
+  const fetchPengajuanDetail = useCallback(async (pengajuanId: string, kelompokId: string) => {
+    setIsDetailLoading(true);
+    setDetailError(null);
+    try {
+      // Fetch detail_usulan
+      const { data: usulanData, error: usulanError } = await supabase
+        .from('detail_usulan')
+        .select('*')
+        .eq('pengajuan_id', pengajuanId);
+
+      if (usulanError) throw new Error(usulanError.message || 'Gagal memuat detail usulan.');
+      setDetailUsulan(usulanData || []);
+
+      // Fetch anggota_kelompok
+      const { data: anggotaData, error: anggotaError } = await supabase
+        .from('anggota_kelompok')
+        .select('*')
+        .eq('kelompok_id', kelompokId);
+
+      if (anggotaError) throw new Error(anggotaError.message || 'Gagal memuat anggota kelompok.');
+      setAnggotaKelompok(anggotaData || []);
+
+    } catch (err: any) {
+      setDetailError(err.message || 'Terjadi kesalahan saat memuat detail.');
+      console.error(`Error fetching detail for ${pengajuanId}:`, err);
+    } finally {
+      setIsDetailLoading(false);
+    }
+  }, [supabase]);
+
+  // Handler for toggling detail view
+  const handleToggleDetail = useCallback(async (pengajuan: Pengajuan) => {
+    if (selectedPengajuanForDetail?.id_pengajuan === pengajuan.id_pengajuan) {
+      // If already expanded, collapse it
+      setSelectedPengajuanForDetail(null);
+      setDetailUsulan([]);
+      setAnggotaKelompok([]);
+      setDetailError(null);
+    } else {
+      // Expand and fetch details
+      setSelectedPengajuanForDetail(pengajuan);
+      // Only fetch if not already fetched or if it's a different pengajuan
+      if (!detailUsulan.length || !anggotaKelompok.length || selectedPengajuanForDetail?.id_pengajuan !== pengajuan.id_pengajuan) {
+        await fetchPengajuanDetail(pengajuan.id_pengajuan, pengajuan.kelompok_id);
+      }
+    }
+  }, [selectedPengajuanForDetail, detailUsulan, anggotaKelompok, fetchPengajuanDetail]);
+
+  // Handle document preview
+  const handlePreviewDocument = async (filePath: string) => {
+    if (!filePath) {
+      alert("Path dokumen tidak tersedia.");
+      return;
+    }
+
+    try {
+      const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+        .from('uploads')
+        .createSignedUrl(filePath, 300); // 300 seconds (5 minutes) validity
+
+      if (signedUrlError) {
+        console.error("Error creating signed URL:", signedUrlError);
+        // Fallback to public URL if signed URL fails
+        const { data: publicURLData } = supabase.storage
+          .from('uploads')
+          .getPublicUrl(filePath);
+
+        if (publicURLData && publicURLData.publicUrl) {
+          setDocumentUrl(publicURLData.publicUrl);
+          setShowDocumentModal(true);
+        } else {
+          alert("Gagal memuat dokumen. Tidak dapat membuat URL pratinjau.");
+        }
+      } else if (signedUrlData && signedUrlData.signedUrl) {
+        setDocumentUrl(signedUrlData.signedUrl);
+        setShowDocumentModal(true);
+      } else {
+        alert("Gagal memuat dokumen. URL pratinjau tidak valid.");
+      }
+    } catch (err: any) {
+      console.error("Unexpected error in handlePreviewDocument:", err.message);
+      alert("Terjadi kesalahan tak terduga saat mencoba memuat dokumen.");
+    }
+  };
+
+  // Helper to parse status_dokumen (which is a JSON string)
+  const parseDokumenChecklist = (statusDokumen: any): DokumenChecklist => {
+    if (typeof statusDokumen === 'string' && statusDokumen.trim() !== '') {
+      try {
+        return JSON.parse(statusDokumen);
+      } catch (e) {
+        console.error("Error parsing status_dokumen JSON:", e);
+      }
+    }
+    // Return default empty checklist if parsing fails or data is not a valid string
+    return { proposal: false, surat_usulan: false, foto_ktp: false, surat_ktm: false, foto_rumah: false, foto_alat_tangkap: false, bpjs: false, kis: false, kartu_kusuka: false, foto_kapal: false };
+  };
 
   useEffect(() => {
     fetchPengajuan();

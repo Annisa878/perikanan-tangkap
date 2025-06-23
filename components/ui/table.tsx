@@ -11,9 +11,7 @@ const Table = React.forwardRef<
       ref={ref}
       className={cn("w-full caption-bottom text-sm", className)}
       {...props} // Spread other props
-    >
-      {children} {/* Render children explicitly inside the table tags */}
-    </table>
+    >{children}</table>
   </div>
 ))
 Table.displayName = "Table"
@@ -56,16 +54,11 @@ TableFooter.displayName = "TableFooter"
 const TableRow = React.forwardRef<
   HTMLTableRowElement,
   React.HTMLAttributes<HTMLTableRowElement>
->(({ className, children, ...props }, ref) => ( // Destructure children
-  <tr // Removed whitespace here
-    ref={ref}
-    className={cn(
-      // Adjusted default styles for better integration with the theme
+>(({ className, children, ...props }, ref) => (
+  <tr ref={ref} className={cn( // Memindahkan ref dan className ke baris yang sama dengan <tr>
       "border-b border-slate-200 dark:border-slate-700 transition-colors hover:bg-slate-100/50 dark:hover:bg-slate-700/50 data-[state=selected]:bg-slate-100 dark:data-[state=selected]:bg-slate-700",
       className
-    )}
-    {...props} // Pass all other props
-  >{children}</tr>
+    )} {...props}>{children}</tr>
 ))
 TableRow.displayName = "TableRow"
 

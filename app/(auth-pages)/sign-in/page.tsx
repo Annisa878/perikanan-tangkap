@@ -65,7 +65,7 @@ export default function Login(props: { searchParams: Promise<Message> }) {
               </button>
             </div>
           </div>
-          <SubmitButton pendingText="Signing In..." formAction={signInAction} className="w-full bg-gradient-to-r from-sky-500 via-cyan-400 to-teal-400 hover:from-sky-600 hover:via-cyan-500 hover:to-teal-500 text-white font-semibold py-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-300">
+          <SubmitButton pendingText="Signing In..." className="w-full bg-gradient-to-r from-sky-500 via-cyan-400 to-teal-400 hover:from-sky-600 hover:via-cyan-500 hover:to-teal-500 text-white font-semibold py-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-300">
             Sign in
           </SubmitButton>
           <FormMessage message={resolvedSearchParams} />

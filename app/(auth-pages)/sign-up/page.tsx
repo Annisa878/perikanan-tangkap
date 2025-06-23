@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import Image from "next/image"; // Import komponen Image
 import { useState, use } from "react"; // Import use
-import { DomisiliEnum } from "@/app/lib/enums"; // Import DomisiliEnum
+import { DOMISILI_LIST } from "@/app/lib/enums"; // Import the list of values
 import { Eye, EyeOff } from "lucide-react"; // Import ikon mata
 
 export default function Signup(props: { searchParams: Promise<Message> }) { 
@@ -56,7 +56,7 @@ export default function Signup(props: { searchParams: Promise<Message> }) {
                 <SelectValue placeholder="Pilih domisili Anda" />
               </SelectTrigger>
               <SelectContent className="bg-white border-slate-300 text-slate-700">
-                {DomisiliEnum.map((domisili) => (
+                {DOMISILI_LIST.map((domisili: string) => (
                   <SelectItem key={domisili} value={domisili} className="hover:bg-sky-50">
                     {domisili}
                   </SelectItem>
@@ -84,7 +84,6 @@ export default function Signup(props: { searchParams: Promise<Message> }) {
           </div>
           <SubmitButton 
             pendingText="Mendaftar..." 
-            formAction={signUpAction} 
             className="w-full text-xs bg-gradient-to-r from-sky-500 via-cyan-400 to-teal-400 hover:from-sky-600 hover:via-cyan-500 hover:to-teal-500 text-white font-semibold py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-300"
           >
             Sign up

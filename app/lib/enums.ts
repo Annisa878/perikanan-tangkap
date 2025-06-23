@@ -1,5 +1,6 @@
-// Enum for Domisili used in Sign Up
-export const DomisiliEnum = [
+// Array of Domisili options, used for UI elements like dropdowns.
+// This is the single source of truth for all domisili values.
+export const DOMISILI_LIST = [
   "Kab. Banyuasin",
   "Kab. Empat Lawang",
   "Kab. Muara Enim",
@@ -14,44 +15,19 @@ export const DomisiliEnum = [
   "Kab. Penukal Abab Lematang Ilir",
   "Kota Lubuk Linggau",
   "Kota Palembang",
-  "Kota Pagar Alam",
-  "Kota Prabumulih",
-  "Kota Lahat"
+  "Kota Pagaralam",
+  "Kota Prabumulih"
 ] as const;
 
-// Enum for Domisili used in Monitoring
-export enum Domisili {
-    KabBanyuasin = "Kab. Banyuasin",
-    KabEmpatLawang = "Kab. Empat Lawang",
-    KabMuaraEnim = "Kab. Muara Enim",
-    KabMusiBanyuasin = "Kab. Musi Banyuasin",
-    KabMusiRawas = "Kab. Musi Rawas",
-    KabMusiRawasUtara = "Kab. Musi Rawas Utara",
-    KabOganIlir = "Kab. Ogan Ilir",
-    KabOganKomeringIlir = "Kab. Ogan Komering Ilir",
-    KabOganKomeringUlu = "Kab. Ogan Komering Ulu",
-    KabOganKomeringUluSelatan = "Kab. Ogan Komering Ulu Selatan",
-    KabOganKomeringUluTimur = "Kab. Ogan Komering Ulu Timur",
-    KabPenukalAbabLematangIlir = "Kab. Penukal Abab Lematang Ilir",
-    KotaLubukLinggau = "Kota Lubuk Linggau",
-    KotaLahat = "Kota Lahat",
-    KotaPalembang = "Kota Palembang",
-    KotaPagarAlam = "Kota Pagar Alam",
-    KotaPrabumulih = "Kota Prabumulih"
-}
+// A TypeScript union type derived from the list above.
+// This provides strong type-checking for domisili values.
+export type Domisili = typeof DOMISILI_LIST[number];
 
-// Enum for Bulan used in Monitoring
-export enum Bulan {
-    Januari = "Januari",
-    Februari = "Februari",
-    Maret = "Maret",
-    April = "April",
-    Mei = "Mei",
-    Juni = "Juni",
-    Juli = "Juli",
-    Agustus = "Agustus",
-    September = "September",
-    Oktober = "Oktober",
-    November = "November",
-    Desember = "Desember"
-}
+// Array of Bulan options, used for UI elements like dropdowns.
+export const BULAN_LIST = [
+  "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+  "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+] as const;
+
+// A TypeScript union type derived from the list above.
+export type Bulan = typeof BULAN_LIST[number];

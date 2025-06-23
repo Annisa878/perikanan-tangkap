@@ -18,10 +18,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [editForm, setEditForm] = useState({
-    username: "",
-    domisili: ""
-  });
+  const [editForm, setEditForm] = useState({ username: "" });
 
   // Password change states
   const [isChangingPassword, setIsChangingPassword] = useState(false);
@@ -69,10 +66,7 @@ export default function ProfilePage() {
           domisili: data.domisili || ""
         });
         
-        setEditForm({
-          username: data.username || "",
-          domisili: data.domisili || ""
-        });
+        setEditForm({ username: data.username || "" });
       } catch (error) {
         console.error("Error fetching user data:", error);
       } finally {
@@ -89,10 +83,7 @@ export default function ProfilePage() {
 
   const handleCancel = () => {
     setIsEditing(false);
-    setEditForm({
-      username: userData.username,
-      domisili: userData.domisili
-    });
+    setEditForm({ username: userData.username });
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -109,8 +100,7 @@ export default function ProfilePage() {
       const { error } = await supabase
         .from("users")
         .update({
-          username: editForm.username,
-          domisili: editForm.domisili
+          username: editForm.username
         })
         .eq("id", user.id);
         
@@ -119,13 +109,12 @@ export default function ProfilePage() {
       // Update local state
       setUserData(prev => ({
         ...prev,
-        username: editForm.username,
-        domisili: editForm.domisili
+        username: editForm.username
       }));
       
       setIsEditing(false);
     } catch (error) {
-      console.error("Error updating profile:", error);
+      console.error("Error updating profile:", (error as any).message || error); // Log the message or the full error object
     } finally {
       setSaving(false);
     }
@@ -396,16 +385,9 @@ export default function ProfilePage() {
                     <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1">
                       Domisili
                     </label>
-                    {isEditing ? (
-                      <textarea
-                        name="domisili"
-                        value={editForm.domisili}
-                        onChange={handleChange}
-                        rows={3}
-                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100"
-                      />
-                    ) : (
-                      <p className="text-slate-800 dark:text-slate-100">{userData.domisili || "-"}</p>
+                    <p className="text-slate-800 dark:text-slate-100">{userData.domisili || "-"}</p>
+                    {isEditing && (
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Domisili tidak dapat diubah melalui halaman ini.</p>
                     )}
                   </div>
                   
