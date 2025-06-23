@@ -59,6 +59,11 @@ export default function LaporanPage() {
     const [selectedKelompokId, setSelectedKelompokId] = useState<string | null>(null);
     const [formData, setFormData] = useState<LaporanFormData>(initialFormData);
 
+    const bulanOptions = [
+        "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+        "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+    ];
+
     // 1. Ambil Data Pengguna (termasuk userId dan domisili)
     useEffect(() => {
         const fetchUser = async () => {
@@ -423,7 +428,7 @@ export default function LaporanPage() {
                                     className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 transition-all text-sm"
                                 >
                                     <option value="">Pilih Bulan</option>
-                                    {Object.values(Bulan).map((month) => (
+                                    {bulanOptions.map((month) => (
                                         <option key={month} value={month}>
                                             {month}
                                         </option>
