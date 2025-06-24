@@ -1,11 +1,12 @@
 // Interface untuk data bulanan
 export interface MonthlyData {
   month: string;
-  jumlah: number;
+  jumlah: number; // Jumlah pengajuan
+  // Bisa ditambahkan properti lain jika perlu, misal: total_tonase, dll.
 }
 
 // Fungsi helper untuk memproses data mentah menjadi tren bulanan
-export const processDataForMonthlyTrend = (items: { created_at: string }[] | null | undefined): MonthlyData[] => {
+export const processDataForMonthlyTrend = (items: { created_at: string; [key: string]: any }[] | null | undefined): MonthlyData[] => {
   if (!items || items.length === 0) return [];
 
   const countsByMonthYear: Record<string, number> = {};

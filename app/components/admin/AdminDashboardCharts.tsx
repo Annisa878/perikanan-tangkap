@@ -1,36 +1,12 @@
 "use client";
 
 import React from "react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, TooltipProps } from 'recharts';
+import { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent';
 
 export interface MonthlyData {
   month: string;
   jumlah: number;
-}
-
-// Fungsi helper ini bisa juga dipindahkan ke file utilitas bersama jika digunakan di banyak tempat
-export const processDataForMonthlyTrend = (items: { created_at: string }[] | null | undefined): MonthlyData[] => {
-  if (!items || items.length === 0) return [];
-
-  const countsByMonthYear: Record<string, number> = {};
-  items.forEach(item => {
-    const date = new Date(item.created_at);
-    const year = date.getFullYear();
-    const month = date.getMonth(); // 0-11
-    const key = `${year}-${String(month).padStart(2, '0')}`; 
-    countsByMonthYear[key] = (countsByMonthYear[key] || 0) + 1;
-  });
-
-  const monthLabels = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Ags", "Sep", "Okt", "Nov", "Des"];
-  return Object.keys(countsByMonthYear)
-    .sort()
-    .map(key => {
-      const [year, monthNum] = key.split('-');
-      return {
-        month: `${monthLabels[parseInt(monthNum, 10)]} ${year}`,
-        jumlah: countsByMonthYear[key],
-      };
-    });
 };
 
 interface TrendChartProps {
@@ -41,7 +17,7 @@ interface TrendChartProps {
   dataKey: string;
 }
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({ active, payload, label }: TooltipProps<ValueType, NameType>) => {
   if (active && payload && payload.length) {
     return (
       <div className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm shadow-xl border border-gray-200/50 dark:border-gray-600/50 p-3 rounded-lg">
@@ -202,31 +178,6 @@ const AdminDashboardCharts: React.FC<AdminDashboardChartsProps> = ({
   pengajuanDiterimaTrend, 
   pengajuanDitolakTrend 
 }) => {
-  // Debug: Log data untuk memastikan data tersedia
-  console.log('Pengajuan Diterima Trend:', pengajuanDiterimaTrend);
-  console.log('Pengajuan Ditolak Trend:', pengajuanDitolakTrend);
-
-  // Periksa apakah kedua chart tidak memiliki data
-  const noChartData = (!pengajuanDiterimaTrend || pengajuanDiterimaTrend.length === 0) && 
-                      (!pengajuanDitolakTrend || pengajuanDitolakTrend.length === 0);
-
-  // Untuk demo, jika tidak ada data, buat sample data
-  const sampleDataDiterima: MonthlyData[] = pengajuanDiterimaTrend?.length > 0 ? pengajuanDiterimaTrend : [
-    { month: 'Jan 2024', jumlah: 5 },
-    { month: 'Feb 2024', jumlah: 8 },
-    { month: 'Mar 2024', jumlah: 12 },
-    { month: 'Apr 2024', jumlah: 7 },
-    { month: 'Mei 2024', jumlah: 15 },
-  ];
-
-  const sampleDataDitolak: MonthlyData[] = pengajuanDitolakTrend?.length > 0 ? pengajuanDitolakTrend : [
-    { month: 'Jan 2024', jumlah: 2 },
-    { month: 'Feb 2024', jumlah: 3 },
-    { month: 'Mar 2024', jumlah: 1 },
-    { month: 'Apr 2024', jumlah: 4 },
-    { month: 'Mei 2024', jumlah: 2 },
-  ];
-
   return (
     <div className="h-full flex flex-col">
       <div className="flex justify-between items-center mb-4 flex-shrink-0">
@@ -248,7 +199,7 @@ const AdminDashboardCharts: React.FC<AdminDashboardChartsProps> = ({
       <div className="flex-1 grid grid-cols-2 gap-4 min-h-0">
         <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm p-4 rounded-xl shadow-sm border border-white/20 dark:border-slate-700/50 flex flex-col hover:shadow-md hover:bg-white/80 dark:hover:bg-slate-800/80 transition-all duration-200">
           <TrendChart 
-            data={sampleDataDiterima} 
+            data={pengajuanDiterimaTrend} 
             title="Pengajuan Diterima" 
             barColor="#10b981" // Emerald-500
             glowColor="#34d399" // Emerald-400
@@ -257,7 +208,7 @@ const AdminDashboardCharts: React.FC<AdminDashboardChartsProps> = ({
         </div>
         <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm p-4 rounded-xl shadow-sm border border-white/20 dark:border-slate-700/50 flex flex-col hover:shadow-md hover:bg-white/80 dark:hover:bg-slate-800/80 transition-all duration-200">
           <TrendChart 
-            data={sampleDataDitolak} 
+            data={pengajuanDitolakTrend} 
             title="Pengajuan Ditolak" 
             barColor="#ef4444" // Rose-500
             glowColor="#f87171" // Rose-400

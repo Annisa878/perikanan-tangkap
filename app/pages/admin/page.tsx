@@ -1,9 +1,9 @@
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import React from "react"; // Ditambahkan untuk mengatasi error TS2686
-import Link from "next/link";
-import AdminDashboardCharts, { MonthlyData } from "@/app/components/admin/AdminDashboardCharts";
+import AdminDashboardCharts from "@/app/components/admin/AdminDashboardCharts";
 import {
+  // Icons from lucide-react
   Users,
   FileText,
   Clock,
@@ -11,6 +11,7 @@ import {
   XCircle,
   Ship, // Ditambahkan untuk konsistensi header
 } from "lucide-react";
+import { processDataForMonthlyTrend, MonthlyData } from "@/utils/data-processing"; // Import from utils
 
 export default async function AdminDashboard() {
   const supabase = await createClient();
@@ -63,54 +64,10 @@ export default async function AdminDashboard() {
     .from('pengajuan')
     .select('created_at, status_verifikasi');
 
-  // Helper function to process data for monthly trend (server-side)
-  const processDataForMonthlyTrendServer = (
-    items: { created_at: string; status_verifikasi: string | null }[] | null,
-    targetStatus: 'Diterima' | 'Ditolak'
-  ): MonthlyData[] => {
-    if (!items || items.length === 0) {
-      return [];
-    }
-
-    const monthlyCounts: { [key: string]: number } = {}; // Key: "YYYY-MM"
-
-    items.forEach(item => {
-      if (item.status_verifikasi === targetStatus) {
-        const date = new Date(item.created_at);
-        const year = date.getFullYear();
-        const month = date.getMonth(); // 0-11
-        const key = `${year}-${String(month + 1).padStart(2, '0')}`; // "YYYY-MM"
-
-        if (!monthlyCounts[key]) {
-          monthlyCounts[key] = 0;
-        }
-        monthlyCounts[key]++;
-      }
-    });
-
-    const monthNames = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
-
-    return Object.entries(monthlyCounts)
-      .map(([yearMonth, jumlah]) => {
-        const [year, monthNum] = yearMonth.split('-');
-        return {
-          year: parseInt(year),
-          monthIndex: parseInt(monthNum) - 1, // 0-11
-          month: `${monthNames[parseInt(monthNum) - 1]} ${year}`,
-          jumlah,
-        };
-      })
-      .sort((a, b) => {
-        if (a.year !== b.year) {
-          return a.year - b.year;
-        }
-        return a.monthIndex - b.monthIndex;
-      })
-      .map(({ month, jumlah }) => ({ month, jumlah }));
-  };
-
-  const pengajuanDiterimaTrend = processDataForMonthlyTrendServer(allPengajuanData, 'Diterima');
-  const pengajuanDitolakTrend = processDataForMonthlyTrendServer(allPengajuanData, 'Ditolak');
+  // Process data for charts using the utility function
+  // Filter data by status_verifikasi before passing to processDataForMonthlyTrend
+  const pengajuanDiterimaTrend = processDataForMonthlyTrend(allPengajuanData?.filter(p => p.status_verifikasi === 'Diterima') || []);
+  const pengajuanDitolakTrend = processDataForMonthlyTrend(allPengajuanData?.filter(p => p.status_verifikasi === 'Ditolak') || []);
 
   return (
     // Mengadopsi layout utama dan latar belakang dari halaman kepala-dinas
