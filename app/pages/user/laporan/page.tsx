@@ -59,6 +59,11 @@ export default function LaporanPage() {
     const [selectedKelompokId, setSelectedKelompokId] = useState<string | null>(null);
     const [formData, setFormData] = useState<LaporanFormData>(initialFormData);
 
+    // State untuk validasi status KUB
+    const [isKubApproved, setIsKubApproved] = useState<boolean>(false);
+    const [kubValidationMessage, setKubValidationMessage] = useState<string>('');
+    const [isCheckingKub, setIsCheckingKub] = useState<boolean>(false);
+
     const bulanOptions = [
         "Januari", "Februari", "Maret", "April", "Mei", "Juni",
         "Juli", "Agustus", "September", "Oktober", "November", "Desember"
@@ -227,11 +232,57 @@ export default function LaporanPage() {
         }
     };
 
+    const validateKUBStatus = async (kelompokId: string) => {
+        if (!kelompokId) {
+            setIsKubApproved(false);
+            setKubValidationMessage('');
+            return;
+        }
+
+        setIsCheckingKub(true);
+        setKubValidationMessage('Memeriksa status pengajuan KUB...');
+        try {
+            const { data: latestPengajuan, error } = await supabase
+                .from('pengajuan')
+                .select('status_verifikasi, status_verifikasi_kabid')
+                .eq('kelompok_id', kelompokId)
+                .order('tanggal_pengajuan', { ascending: false })
+                .limit(1)
+                .single();
+
+            if (error || !latestPengajuan) {
+                setIsKubApproved(false);
+                setKubValidationMessage('Tidak ditemukan data pengajuan untuk KUB ini. Laporan tidak dapat dibuat.');
+                return;
+            }
+
+            const isAdminApproved = latestPengajuan.status_verifikasi === 'Diterima';
+            const isKabidApproved = ['Disetujui Sepenuhnya', 'Disetujui Sebagian'].includes(latestPengajuan.status_verifikasi_kabid || '');
+
+            if (isAdminApproved && isKabidApproved) {
+                setIsKubApproved(true);
+                setKubValidationMessage(''); // Hapus pesan jika berhasil
+            } else {
+                setIsKubApproved(false);
+                setKubValidationMessage('Pengajuan untuk KUB ini belum disetujui sepenuhnya oleh Admin dan Kepala Bidang. Laporan tidak dapat dibuat.');
+            }
+
+        } catch (err) {
+            console.error("Error validating KUB status:", err);
+            setIsKubApproved(false);
+            setKubValidationMessage('Gagal memvalidasi status KUB. Silakan coba lagi.');
+        } finally {
+            setIsCheckingKub(false);
+        }
+    };
+
     const handleKelompokChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const kelompokId = e.target.value;
-        // Jika "Pilih Kelompok" (nilai kosong) dipilih, set ID ke null.
         setSelectedKelompokId(kelompokId === "" ? null : kelompokId);
-        // useEffect di atas akan menangani pembaruan formData.nama_kub dan reset nama_anggota.
+
+        // Memanggil fungsi validasi
+        if (kelompokId) validateKUBStatus(kelompokId);
+        else { setIsKubApproved(false); setKubValidationMessage(''); }
     };
 
     const handleAnggotaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -291,6 +342,12 @@ export default function LaporanPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Tambahkan pengecekan akhir sebelum submit
+        if (!isKubApproved) {
+            alert(kubValidationMessage || 'KUB yang dipilih belum disetujui atau valid. Laporan tidak dapat dikirim.');
+            return;
+        }
     
         if (!userId) {
             alert("User ID not found. Please log in again.");
@@ -390,6 +447,10 @@ export default function LaporanPage() {
                                         </option>
                                     ))}
                                 </select>
+                                {/* Menampilkan pesan validasi */}
+                                {isCheckingKub && <p className="text-sm mt-2 text-sky-600 dark:text-sky-400 animate-pulse">{kubValidationMessage}</p>}
+                                {!isCheckingKub && kubValidationMessage && <p className="text-sm mt-2 text-red-600 dark:text-red-400">{kubValidationMessage}</p>}
+
                             </div>
 
                             <div>
@@ -413,177 +474,181 @@ export default function LaporanPage() {
                         </div>
                     </div>
 
-                    {/* Detail Laporan */}
-                    <div className="p-4 border border-teal-200 dark:border-teal-700 rounded-lg bg-teal-50 dark:bg-slate-700/30">
-                        <h2 className="text-lg font-semibold text-teal-700 dark:text-teal-300 mb-4">Detail Laporan</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                            <div>
-                                <label htmlFor="bulan" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Bulan</label>
-                                <select
-                                    id="bulan"
-                                    name="bulan"
-                                    value={formData.bulan}
-                                    onChange={handleChange}
-                                    required
-                                    className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 transition-all text-sm"
-                                >
-                                    <option value="">Pilih Bulan</option>
-                                    {bulanOptions.map((month) => (
-                                        <option key={month} value={month}>
-                                            {month}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div>
-                                <label htmlFor="trip" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Trip (hari/jam)</label>
-                                <input
-                                    id="trip"
-                                    type="number"
-                                    name="trip"
-                                    value={formData.trip}
-                                    onChange={handleChange}
-                                    required
-                                    className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 transition-all text-sm"
-                                />
-                            </div>
-
-                            <div>
-                                <label htmlFor="jenis_bbm" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Jenis BBM</label>
-                                <input
-                                    id="jenis_bbm"
-                                    type="text"
-                                    name="jenis_bbm"
-                                    value={formData.jenis_bbm}
-                                    onChange={handleChange}
-                                    placeholder="Solar / Pertalite"
-                                    className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 transition-all text-sm"
-                                />
-                            </div>
-
-                            <div>
-                                <label htmlFor="jumlah_bbm_liter" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">BBM (Liter)</label>
-                                <input
-                                    id="jumlah_bbm_liter"
-                                    type="number"
-                                    name="jumlah_bbm_liter"
-                                    value={formData.jumlah_bbm_liter} // Directly bind to the number in state
-                                    onChange={handleChange}
-                                    required
-                                    className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 transition-all text-sm"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label htmlFor="daerah_penangkapan" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Daerah Penangkapan</label>
-                                <textarea
-                                    id="daerah_penangkapan"
-                                    name="daerah_penangkapan"
-                                    value={formData.daerah_penangkapan}
-                                    onChange={handleChange}
-                                    rows={3}
-                                    placeholder="Contoh: Perairan Sungai Musi, Laut Jawa"
-                                    className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 transition-all text-sm resize-none"
-                                />
-                            </div>
-
-                            <div>
-                                <label htmlFor="keterangan" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Keterangan</label>
-                                <textarea
-                                    id="keterangan"
-                                    name="keterangan"
-                                    value={formData.keterangan}
-                                    onChange={handleChange}
-                                    rows={3}
-                                    placeholder="Catatan tambahan jika ada"
-                                    className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 transition-all text-sm resize-none"
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Produksi Ikan */}
-                    <div className="p-4 md:p-6 bg-emerald-50 dark:bg-slate-700/50 rounded-lg">
-                        <div className="flex justify-between items-center mb-4">
-                            <h2 className="text-lg font-semibold text-emerald-700 dark:text-emerald-300">Produksi Ikan</h2>
-                            <button
-                                type="button"
-                                onClick={tambahProduksi}
-                                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium rounded-lg transition-colors"
-                            >
-                                + Tambah Produksi
-                            </button>
-                        </div>
-                        
-                        {formData.produksi.map((produksi, index) => (
-                            <div
-                                key={index}
-                                className="border border-emerald-200 dark:border-emerald-600 p-4 rounded-lg mb-4 bg-white dark:bg-slate-700 shadow-sm relative"
-                            >
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <div>
-                                        <label htmlFor={`nama_ikan_${index}`} className="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Nama Ikan</label>
-                                        <input
-                                            id={`nama_ikan_${index}`}
-                                            type="text"
-                                            name="nama_ikan"
-                                            value={produksi.nama_ikan}
-                                            onChange={(e) => handleProduksiChange(index, e)}
-                                            required
-                                            placeholder="Ikan Gabus"
-                                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md focus:ring-1 focus:ring-emerald-500 focus:border-transparent bg-white dark:bg-slate-600 text-slate-900 dark:text-slate-100 text-sm"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label htmlFor={`jumlah_kg_${index}`} className="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Jumlah (Kg)</label>
-                                        <input
-                                            id={`jumlah_kg_${index}`}
-                                            type="number"
-                                            name="jumlah_kg"
-                                            value={produksi.jumlah_kg}
-                                            onChange={(e) => handleProduksiChange(index, e)}
-                                            required
-                                            min="0"
-                                            step="0.1"
-                                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md focus:ring-1 focus:ring-emerald-500 focus:border-transparent bg-white dark:bg-slate-600 text-slate-900 dark:text-slate-100 text-sm"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label htmlFor={`harga_per_kg_${index}`} className="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Harga/Kg (Rp)</label>
-                                        <input
-                                            id={`harga_per_kg_${index}`}
-                                            type="text"
-                                            inputMode="numeric"
-                                            name="harga_per_kg"
-                                            value={formatRibuan(produksi.harga_per_kg)}
-                                            onChange={(e) => handleProduksiChange(index, e)}
-                                            required
-                                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md focus:ring-1 focus:ring-emerald-500 focus:border-transparent bg-white dark:bg-slate-600 text-slate-900 dark:text-slate-100 text-sm"
-                                        />
-                                    </div>
-                                </div>
-                                {formData.produksi.length > 1 && (
-                                    <button
-                                        type="button"
-                                        onClick={() => hapusProduksi(index)}
-                                        className="absolute top-2 right-2 p-1 bg-red-100 hover:bg-red-200 dark:bg-red-700 dark:hover:bg-red-600 text-red-600 dark:text-red-200 rounded-full text-xs leading-none"
-                                        aria-label="Hapus item produksi"
+                    {/* Gunakan fieldset untuk menonaktifkan sisa form berdasarkan hasil validasi */}
+                    <fieldset disabled={!isKubApproved || isCheckingKub} className="space-y-6">
+                        {/* Detail Laporan */}
+                        <div className="p-4 border border-teal-200 dark:border-teal-700 rounded-lg bg-teal-50 dark:bg-slate-700/30">
+                            <h2 className="text-lg font-semibold text-teal-700 dark:text-teal-300 mb-4">Detail Laporan</h2>
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                                <div>
+                                    <label htmlFor="bulan" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Bulan</label>
+                                    <select
+                                        id="bulan"
+                                        name="bulan"
+                                        value={formData.bulan}
+                                        onChange={handleChange}
+                                        required
+                                        className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 transition-all text-sm"
                                     >
-                                        ✕
-                                    </button>
-                                )}
+                                        <option value="">Pilih Bulan</option>
+                                        {bulanOptions.map((month) => (
+                                            <option key={month} value={month}>
+                                                {month}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label htmlFor="trip" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Trip (hari/jam)</label>
+                                    <input
+                                        id="trip"
+                                        type="number"
+                                        name="trip"
+                                        value={formData.trip}
+                                        onChange={handleChange}
+                                        required
+                                        className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 transition-all text-sm"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label htmlFor="jenis_bbm" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Jenis BBM</label>
+                                    <input
+                                        id="jenis_bbm"
+                                        type="text"
+                                        name="jenis_bbm"
+                                        value={formData.jenis_bbm}
+                                        onChange={handleChange}
+                                        placeholder="Solar / Pertalite"
+                                        className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 transition-all text-sm"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label htmlFor="jumlah_bbm_liter" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">BBM (Liter)</label>
+                                    <input
+                                        id="jumlah_bbm_liter"
+                                        type="number"
+                                        name="jumlah_bbm_liter"
+                                        value={formData.jumlah_bbm_liter} // Directly bind to the number in state
+                                        onChange={handleChange}
+                                        required
+                                        className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 transition-all text-sm"
+                                    />
+                                </div>
                             </div>
-                        ))}
-                    </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label htmlFor="daerah_penangkapan" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Daerah Penangkapan</label>
+                                    <textarea
+                                        id="daerah_penangkapan"
+                                        name="daerah_penangkapan"
+                                        value={formData.daerah_penangkapan}
+                                        onChange={handleChange}
+                                        rows={3}
+                                        placeholder="Contoh: Perairan Sungai Musi, Laut Jawa"
+                                        className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 transition-all text-sm resize-none"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label htmlFor="keterangan" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Keterangan</label>
+                                    <textarea
+                                        id="keterangan"
+                                        name="keterangan"
+                                        value={formData.keterangan}
+                                        onChange={handleChange}
+                                        rows={3}
+                                        placeholder="Catatan tambahan jika ada"
+                                        className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 transition-all text-sm resize-none"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Produksi Ikan */}
+                        <div className="p-4 md:p-6 bg-emerald-50 dark:bg-slate-700/50 rounded-lg">
+                            <div className="flex justify-between items-center mb-4">
+                                <h2 className="text-lg font-semibold text-emerald-700 dark:text-emerald-300">Produksi Ikan</h2>
+                                <button
+                                    type="button"
+                                    onClick={tambahProduksi}
+                                    className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium rounded-lg transition-colors"
+                                >
+                                    + Tambah Produksi
+                                </button>
+                            </div>
+                            
+                            {formData.produksi.map((produksi, index) => (
+                                <div
+                                    key={index}
+                                    className="border border-emerald-200 dark:border-emerald-600 p-4 rounded-lg mb-4 bg-white dark:bg-slate-700 shadow-sm relative"
+                                >
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div>
+                                            <label htmlFor={`nama_ikan_${index}`} className="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Nama Ikan</label>
+                                            <input
+                                                id={`nama_ikan_${index}`}
+                                                type="text"
+                                                name="nama_ikan"
+                                                value={produksi.nama_ikan}
+                                                onChange={(e) => handleProduksiChange(index, e)}
+                                                required
+                                                placeholder="Ikan Gabus"
+                                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md focus:ring-1 focus:ring-emerald-500 focus:border-transparent bg-white dark:bg-slate-600 text-slate-900 dark:text-slate-100 text-sm"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label htmlFor={`jumlah_kg_${index}`} className="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Jumlah (Kg)</label>
+                                            <input
+                                                id={`jumlah_kg_${index}`}
+                                                type="number"
+                                                name="jumlah_kg"
+                                                value={produksi.jumlah_kg}
+                                                onChange={(e) => handleProduksiChange(index, e)}
+                                                required
+                                                min="0"
+                                                step="0.1"
+                                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md focus:ring-1 focus:ring-emerald-500 focus:border-transparent bg-white dark:bg-slate-600 text-slate-900 dark:text-slate-100 text-sm"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label htmlFor={`harga_per_kg_${index}`} className="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Harga/Kg (Rp)</label>
+                                            <input
+                                                id={`harga_per_kg_${index}`}
+                                                type="text"
+                                                inputMode="numeric"
+                                                name="harga_per_kg"
+                                                value={formatRibuan(produksi.harga_per_kg)}
+                                                onChange={(e) => handleProduksiChange(index, e)}
+                                                required
+                                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md focus:ring-1 focus:ring-emerald-500 focus:border-transparent bg-white dark:bg-slate-600 text-slate-900 dark:text-slate-100 text-sm"
+                                            />
+                                        </div>
+                                    </div>
+                                    {formData.produksi.length > 1 && (
+                                        <button
+                                            type="button"
+                                            onClick={() => hapusProduksi(index)}
+                                            className="absolute top-2 right-2 p-1 bg-red-100 hover:bg-red-200 dark:bg-red-700 dark:hover:bg-red-600 text-red-600 dark:text-red-200 rounded-full text-xs leading-none"
+                                            aria-label="Hapus item produksi"
+                                        >
+                                            ✕
+                                        </button>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </fieldset>
 
                     <div className="pt-6 border-t border-slate-200 dark:border-slate-700 flex justify-end">
                         <div>
                             <button
                                 type="submit"
-                                className="px-8 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold rounded-lg shadow-md hover:from-green-600 hover:to-emerald-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:ring-offset-slate-800 transition-all"
+                                className="px-8 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold rounded-lg shadow-md hover:from-green-600 hover:to-emerald-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:ring-offset-slate-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                disabled={!isKubApproved || isCheckingKub}
                             >
                                 Kirim Laporan
                             </button>

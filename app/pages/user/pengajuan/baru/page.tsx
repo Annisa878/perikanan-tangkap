@@ -421,6 +421,14 @@ export default function PengajuanForm() {
       setIsLoading(false);
       return;
     }
+
+    const hasKetua = anggotaList.some(anggota => anggota.jabatan === "ketua");
+    if (!hasKetua) {
+      alert("Daftar anggota harus memiliki satu orang dengan jabatan 'Ketua'!");
+      setFormError("Daftar anggota harus memiliki satu orang dengan jabatan 'Ketua'!");
+      setIsLoading(false);
+      return;
+    }
     
     if (!formData.dokumen_pengajuan) {
       alert("Dokumen wajib diunggah!");

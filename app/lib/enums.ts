@@ -3,6 +3,7 @@
 export const DOMISILI_LIST = [
   "Kab. Banyuasin",
   "Kab. Empat Lawang",
+  "Kab. Lahat",
   "Kab. Muara Enim",
   "Kab. Musi Banyuasin",
   "Kab. Musi Rawas",
