@@ -13,7 +13,8 @@ interface FormData {
   wilayah_penangkapan: "perairan_umum_daratan" | "laut" | "";
   dokumen_pengajuan: File | null;
   nama_alat_lainnya: string;
-  tanggal_pengajuan: string; // Tambahkan field untuk tanggal pengajuan manual
+  tanggal_pengajuan: string; 
+  waktu_pengajuan: string; 
   nama_alat: string;
   jumlah_alat: number;
 }
@@ -154,7 +155,8 @@ export default function PengajuanForm() {
     alamat_kub: "",
     kabupaten_kota: "",
     wilayah_penangkapan: "",
-    tanggal_pengajuan: new Date().toISOString().split('T')[0], // Default ke tanggal hari ini (YYYY-MM-DD)
+    tanggal_pengajuan: new Date().toISOString().split('T')[0], // YYYY-MM-DD
+    waktu_pengajuan: new Date().toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }), // HH:mm
     dokumen_pengajuan: null,
     nama_alat_lainnya: "",
     nama_alat: "",
@@ -392,16 +394,19 @@ export default function PengajuanForm() {
     setSuccessMessage(null);
 
     // Final check for KUB eligibility before submitting
-    if (!kubEligibilityStatus.eligible) {
-      alert(kubEligibilityStatus.message || "KUB ini tidak dapat membuat pengajuan baru saat ini.");
+    if (!kubEligibilityStatus.eligible && kubEligibilityStatus.message) {
+      // Only show alert if there's a specific ineligibility message
+      // This prevents alerts for transient states like "Gagal memeriksa status KUB."
+      // where we want to allow submission.
+      alert(kubEligibilityStatus.message);
       setFormError(kubEligibilityStatus.message);
       setIsLoading(false);
       return;
     }
 
     console.log("Form submission started.");
-    if (!formData.nama_kub || !formData.alamat_kub || !formData.kabupaten_kota || !formData.wilayah_penangkapan || !formData.tanggal_pengajuan) {
-      const msg = "Nama KUB, Alamat KUB, Kabupaten/Kota, Wilayah Penangkapan, dan Tanggal Pengajuan wajib diisi!";
+    if (!formData.nama_kub || !formData.alamat_kub || !formData.kabupaten_kota || !formData.wilayah_penangkapan || !formData.tanggal_pengajuan || !formData.waktu_pengajuan) {
+      const msg = "Nama KUB, Alamat KUB, Kabupaten/Kota, Wilayah Penangkapan, Tanggal, dan Waktu Pengajuan wajib diisi!";
       alert(msg);
       setFormError(msg);
       setIsLoading(false);
@@ -450,6 +455,16 @@ export default function PengajuanForm() {
     const userId = userData.user.id;
     console.log("User ID:", userId);
     
+    // Combine date and time into a single ISO string
+    const combinedDateTime = new Date(`${formData.tanggal_pengajuan}T${formData.waktu_pengajuan}`);
+    if (isNaN(combinedDateTime.getTime())) {
+        const msg = "Format tanggal atau waktu tidak valid.";
+        alert(msg);
+        setFormError(msg);
+        setIsLoading(false);
+        return;
+    }
+
     try {
       console.log("Inserting kelompok data:", { nama_kub: formData.nama_kub, alamat_kub: formData.alamat_kub, kabupaten_kota: formData.kabupaten_kota });
       const { data: kelompokResult, error: kelompokError } = await supabase
@@ -519,7 +534,7 @@ export default function PengajuanForm() {
         user_id: userId,
         dokumen_pengajuan: fileData.path,
         wilayah_penangkapan: formData.wilayah_penangkapan,
-        tanggal_pengajuan: formData.tanggal_pengajuan, // Sertakan tanggal pengajuan manual
+        tanggal_pengajuan: combinedDateTime.toISOString(), // Use the combined value
         status_verifikasi: "Menunggu", // Status awal
       };
       console.log("Inserting pengajuan data:", pengajuanInsertData);
@@ -599,8 +614,8 @@ export default function PengajuanForm() {
                 {successMessage}
               </div>
             )}
-            {/* KUB Eligibility Message */}
-            {kubEligibilityStatus.message && (
+            {/* KUB Eligibility Message - only show if there's a message */}
+            {kubEligibilityStatus.message && !kubEligibilityStatus.checking && (
               <div className={`p-4 text-sm rounded-lg border ${kubEligibilityStatus.eligible ? 'text-green-700 bg-green-100 border-green-300 dark:bg-green-900/30 dark:text-green-300 dark:border-green-700' : 'text-yellow-700 bg-yellow-100 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-700'}`}>
                 {kubEligibilityStatus.message}
               </div>
@@ -670,18 +685,33 @@ export default function PengajuanForm() {
                         required
                       />
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                        Tanggal Pengajuan
-                      </label>
-                      <input
-                        type="date"
-                        name="tanggal_pengajuan"
-                        value={formData.tanggal_pengajuan}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 transition-all"
-                        required
-                      />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                          Tanggal Pengajuan
+                        </label>
+                        <input
+                          type="date"
+                          name="tanggal_pengajuan"
+                          value={formData.tanggal_pengajuan}
+                          onChange={handleInputChange}
+                          className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 transition-all"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                          Waktu Pengajuan
+                        </label>
+                        <input
+                          type="time"
+                          name="waktu_pengajuan"
+                          value={formData.waktu_pengajuan}
+                          onChange={handleInputChange}
+                          className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 transition-all"
+                          required
+                        />
+                      </div>
                     </div>
 
                     <div className="p-3 bg-sky-50 dark:bg-sky-900/30 border border-sky-200 dark:border-sky-700 rounded-lg">

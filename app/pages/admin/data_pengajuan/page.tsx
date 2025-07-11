@@ -1067,7 +1067,7 @@ export default function DataPengajuan() {
                 <Table>
                   <TableHeader className="bg-sky-600 dark:bg-sky-700">
                     <TableRow>
-                      <TableHead className="text-white font-semibold w-[50px]">No.</TableHead><TableHead className="text-white font-semibold">Nama KUB</TableHead><TableHead className="text-white font-semibold">Tgl. Pengajuan</TableHead><TableHead className="text-white font-semibold">Wilayah</TableHead><TableHead className="text-white font-semibold">Status Admin</TableHead><TableHead className="text-white font-semibold">Status Kabid</TableHead><TableHead className="text-white font-semibold text-center">Aksi</TableHead>
+                      <TableHead className="text-white font-semibold w-[50px]">No.</TableHead><TableHead className="text-white font-semibold">Nama KUB</TableHead><TableHead className="text-white font-semibold">Tgl. Pengajuan</TableHead><TableHead className="text-white font-semibold">Waktu</TableHead><TableHead className="text-white font-semibold">Wilayah</TableHead><TableHead className="text-white font-semibold">Status Admin</TableHead><TableHead className="text-white font-semibold">Status Kabid</TableHead><TableHead className="text-white font-semibold text-center">Aksi</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody className="divide-y divide-slate-200 dark:divide-slate-700">
@@ -1077,7 +1077,7 @@ export default function DataPengajuan() {
                           className={`hover:bg-sky-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer ${selectedPengajuan?.id_pengajuan === item.id_pengajuan ? 'bg-sky-100 dark:bg-sky-700/60' : ''}`}
                           // onClick={() => handleViewDetail(item)} // Option 1: Click row to view detail
                         >
-                          <TableCell className="text-slate-600 dark:text-slate-300 py-3 px-4 text-center">{index + 1}</TableCell><TableCell className="font-medium text-slate-700 dark:text-slate-200 py-3 px-4">{item.nama_kub}</TableCell><TableCell className="text-slate-600 dark:text-slate-300 py-3 px-4">{new Date(item.tanggal_pengajuan).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</TableCell><TableCell className="text-slate-600 dark:text-slate-300 py-3 px-4">{item.wilayah_penangkapan === 'perairan_umum_daratan' ? 'Daratan' : 'Laut'}</TableCell><TableCell className="py-3 px-4"><span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap ${getStatusBadgeColor(item.status_verifikasi || 'Menunggu')}`}>{item.status_verifikasi || 'Menunggu'}</span></TableCell><TableCell className="py-3 px-4">{item.status_verifikasi_kabid ? (<span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap ${getKabidStatusBadgeColor(item.status_verifikasi_kabid)} flex items-center`}>{item.status_verifikasi_kabid}{["Disetujui Sepenuhnya", "Disetujui Sebagian", "Ditolak"].includes(item.status_verifikasi_kabid) && (<svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 ml-1 text-slate-500 dark:text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" /></svg>)}</span>) : (<span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap ${getKabidStatusBadgeColor('Menunggu')}`}>Menunggu</span>)}</TableCell><TableCell className="text-right py-3 px-4">
+                          <TableCell className="text-slate-600 dark:text-slate-300 py-3 px-4 text-center">{index + 1}</TableCell><TableCell className="font-medium text-slate-700 dark:text-slate-200 py-3 px-4">{item.nama_kub}</TableCell><TableCell className="text-slate-600 dark:text-slate-300 py-3 px-4">{new Date(item.tanggal_pengajuan).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</TableCell><TableCell className="text-slate-600 dark:text-slate-300 py-3 px-4">{new Date(item.tanggal_pengajuan).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</TableCell><TableCell className="text-slate-600 dark:text-slate-300 py-3 px-4">{item.wilayah_penangkapan === 'perairan_umum_daratan' ? 'Daratan' : 'Laut'}</TableCell><TableCell className="py-3 px-4"><span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap ${getStatusBadgeColor(item.status_verifikasi || 'Menunggu')}`}>{item.status_verifikasi || 'Menunggu'}</span></TableCell><TableCell className="py-3 px-4">{item.status_verifikasi_kabid ? (<span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap ${getKabidStatusBadgeColor(item.status_verifikasi_kabid)} flex items-center`}>{item.status_verifikasi_kabid}{["Disetujui Sepenuhnya", "Disetujui Sebagian", "Ditolak"].includes(item.status_verifikasi_kabid) && (<svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 ml-1 text-slate-500 dark:text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" /></svg>)}</span>) : (<span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap ${getKabidStatusBadgeColor('Menunggu')}`}>Menunggu</span>)}</TableCell><TableCell className="text-right py-3 px-4">
                             <div className="flex justify-end items-center space-x-1">
                               <Button
                                 variant="ghost"
@@ -1117,7 +1117,7 @@ export default function DataPengajuan() {
                         {/* Expanded Detail Section - MOVED HERE */}
                         {selectedPengajuan?.id_pengajuan === item.id_pengajuan && (
                           <TableRow className="bg-sky-50/30 dark:bg-slate-700/30">
-                            <TableCell colSpan={7}> {/* ColSpan disesuaikan dengan jumlah kolom header (termasuk No.) */}
+                            <TableCell colSpan={8}> {/* ColSpan disesuaikan dengan jumlah kolom header (termasuk No. dan Waktu) */}
                               <div className="p-4 md:p-6 bg-sky-50 dark:bg-sky-800/30 border border-sky-200 dark:border-sky-600 rounded-lg shadow-md my-2">
                                 {isDetailLoading ? (
                                   <p className="text-center py-4 text-slate-600 dark:text-slate-400">Memuat detail...</p>
@@ -1456,7 +1456,7 @@ export default function DataPengajuan() {
                       </React.Fragment>
                     )) : (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center py-10 text-slate-500 dark:text-slate-400"> {/* ColSpan disesuaikan */}
+                        <TableCell colSpan={8} className="text-center py-10 text-slate-500 dark:text-slate-400"> {/* ColSpan disesuaikan */}
                           Tidak ada data pengajuan yang sesuai dengan filter.
                         </TableCell>
                       </TableRow>

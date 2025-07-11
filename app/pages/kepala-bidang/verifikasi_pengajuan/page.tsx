@@ -528,7 +528,7 @@ export default function VerifikasiPengajuan() {
                       <TableHead className="px-3 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase">Nama KUB</TableHead>
                       <TableHead className="px-3 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase">Wilayah</TableHead>
                       <TableHead className="px-3 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase">Tgl. Pengajuan</TableHead>
-                      <TableHead className="px-3 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase text-center">Status Kabid</TableHead>
+                      <TableHead className="px-3 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase">Waktu</TableHead><TableHead className="px-3 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase text-center">Status Kabid</TableHead>
                       <TableHead className="w-[50px] px-3 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase text-center">Aksi</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -541,7 +541,7 @@ export default function VerifikasiPengajuan() {
                           <TableCell className="px-3 py-3 text-sm text-slate-700 dark:text-slate-200 font-medium">{item.nama_kub}</TableCell>
                           <TableCell className="px-3 py-3 text-sm text-slate-700 dark:text-slate-200">{item.wilayah_penangkapan === 'perairan_umum_daratan' ? 'Perairan Daratan' : 'Laut'}</TableCell>
                           <TableCell className="px-3 py-3 text-sm text-slate-700 dark:text-slate-200">{new Date(item.tanggal_pengajuan).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</TableCell>
-                          <TableCell className="px-3 py-3 text-center">
+                          <TableCell className="px-3 py-3 text-sm text-slate-700 dark:text-slate-200">{new Date(item.tanggal_pengajuan).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</TableCell><TableCell className="px-3 py-3 text-center">
                             <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${getStatusBadgeColor(item.status_verifikasi_kabid)}`}>
                               {item.status_verifikasi_kabid || 'Belum Diverifikasi'}
                             </span>
@@ -566,7 +566,7 @@ export default function VerifikasiPengajuan() {
                         </TableRow>
                         {expandedRowId === item.id_pengajuan && selectedPengajuan && (
                           <TableRow className="bg-white dark:bg-slate-800 hover:bg-white dark:hover:bg-slate-800">
-                            <TableCell colSpan={6} className="p-0">
+                            <TableCell colSpan={7} className="p-0">
                               <div className="p-4 md:p-6 border-t-2 border-sky-300 dark:border-sky-600 bg-sky-50/30 dark:bg-sky-800/10">
                               {isDetailLoading ? (
                                 <div className="flex justify-center items-center py-10">

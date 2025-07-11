@@ -102,6 +102,7 @@ const DAFTAR_KABUPATEN_KOTA = [
   "Pagar Alam",
   "Prabumulih"
 ].sort();
+
 export default function LaporanPengajuanDisetujuiPage() {
   const supabase = createClient();
   const router = useRouter(); // Available if needed
@@ -408,6 +409,7 @@ export default function LaporanPengajuanDisetujuiPage() {
                     <TableHead className="px-3 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase">Wilayah</TableHead>
                     <TableHead className="px-3 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase">Kab/Kota</TableHead>
                     <TableHead className="px-3 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase">Tgl. Pengajuan</TableHead>
+                    <TableHead className="px-3 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase">Waktu</TableHead>
                     <TableHead className="px-3 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase text-center">Status Admin</TableHead>
                     <TableHead className="px-3 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase text-center">Status Kabid</TableHead>
                     <TableHead className="w-[80px] px-3 py-3 text-xs font-medium text-sky-700 dark:text-sky-200 uppercase text-center">Aksi</TableHead>
@@ -428,6 +430,9 @@ export default function LaporanPengajuanDisetujuiPage() {
                         <TableCell className="px-3 py-3 text-sm text-slate-700 dark:text-slate-200">{item.kabupaten_kota || '-'}</TableCell>
                         <TableCell className="px-3 py-3 text-sm text-slate-700 dark:text-slate-200">
                           {new Date(item.tanggal_pengajuan).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </TableCell>
+                        <TableCell className="px-3 py-3 text-sm text-slate-700 dark:text-slate-200">
+                          {new Date(item.tanggal_pengajuan).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
                         </TableCell>
                         <TableCell className="px-3 py-3 text-center">
                           <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${getStatusBadgeColor(item.status_verifikasi)}`}>
@@ -465,7 +470,7 @@ export default function LaporanPengajuanDisetujuiPage() {
                         <TableRow
                           key={`${item.id_pengajuan}-expanded`}
                           className="bg-white dark:bg-slate-800 hover:bg-white dark:hover:bg-slate-800">
-                          <TableCell colSpan={8} className="p-0"> {/* colSpan is correct for this table */}
+                          <TableCell colSpan={9} className="p-0"> {/* Updated colSpan to 9 */}
                             <div className="p-4 md:p-6 border-t-2 border-sky-300 dark:border-sky-600 bg-sky-50/30 dark:bg-sky-800/10"> {/* Matched expanded row container style */}
                               {isDetailLoading ? (
                                 <div className="flex justify-center items-center py-10">

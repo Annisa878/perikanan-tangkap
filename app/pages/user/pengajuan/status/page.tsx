@@ -533,6 +533,7 @@ export default function PengajuanList() {
                       <th scope="col" className="px-6 py-3.5 text-left text-xs font-semibold text-white uppercase tracking-wider">Nama KUB</th>
                       <th scope="col" className="px-6 py-3.5 text-left text-xs font-semibold text-white uppercase tracking-wider">Wilayah</th>
                       <th scope="col" className="px-6 py-3.5 text-left text-xs font-semibold text-white uppercase tracking-wider">Tgl. Pengajuan</th>
+                      <th scope="col" className="px-6 py-3.5 text-left text-xs font-semibold text-white uppercase tracking-wider">Waktu</th>
                       <th scope="col" className="px-6 py-3.5 text-left text-xs font-semibold text-white uppercase tracking-wider whitespace-nowrap">Status Data (Admin)</th>
                       <th scope="col" className="px-6 py-3.5 text-left text-xs font-semibold text-white uppercase tracking-wider whitespace-nowrap">Status Akhir (Kabid)</th>
                       <th scope="col" className="px-6 py-3.5 text-center text-xs font-semibold text-white uppercase tracking-wider">Aksi</th>
@@ -547,6 +548,7 @@ export default function PengajuanList() {
                           {item.wilayah_penangkapan === 'perairan_umum_daratan' ? 'Perairan Daratan' : item.wilayah_penangkapan === 'laut' ? 'Laut' : item.wilayah_penangkapan}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">{formatDate(item.tanggal_pengajuan)}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">{new Date(item.tanggal_pengajuan).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</td>
                         <td className="px-6 py-4 whitespace-nowrap">{getAdminStatusBadge(item.status_verifikasi || 'Menunggu')}</td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           {item.status_verifikasi_kabid ? getKabidStatusBadge(item.status_verifikasi_kabid) : <span className="px-2 py-1 text-xs bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-300 rounded-full">Menunggu</span>}
