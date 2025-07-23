@@ -28,7 +28,7 @@ export default async function AdminDashboard() {
     .from('users')
     .select('*')
     .eq('id', user.id)
-    .eq('role', 'admin')
+    .eq('role', 'Admin Provinsi')
     .single();
   
   if (!adminData) {

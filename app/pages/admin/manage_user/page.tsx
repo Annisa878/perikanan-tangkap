@@ -50,7 +50,7 @@ export default function AdminUsersPage() {
   const [formData, setFormData] = useState({
     email: "",
     username: "",
-    role: "user",
+    role: "Admin Kab/Kota",
     domisili: "" as Domisili | "",
     password: "",
   });
@@ -119,7 +119,7 @@ export default function AdminUsersPage() {
     setFormData({
       email: "",
       username: "",
-      role: "user",
+      role: "Admin Kab/Kota",
       domisili: "" as Domisili | "",
       password: "",
     });
@@ -145,27 +145,31 @@ export default function AdminUsersPage() {
       return;
     }
 
-    if (!domisili) {
-      toast.error("Domisili harus diisi");
-      return;
-    }
-
-    // Check if domisili is valid
-    if (!DOMISILI_LIST.includes(domisili as Domisili)) {
-      toast.error("Domisili tidak valid");
-      return;
+    // Conditional validation for domisili based on role
+    if (role === "Admin Kab/Kota") {
+      if (!domisili) {
+        toast.error("Domisili harus diisi untuk role Admin Kab/Kota");
+        return;
+      }
+      if (!DOMISILI_LIST.includes(domisili as Domisili)) {
+        toast.error("Domisili tidak valid");
+        return;
+      }
     }
 
     setIsUpdating(true);
 
+    // Prepare the data for update, setting domisili to null if not applicable
+    const updateData = {
+      username: username.trim(),
+      role,
+      domisili: role === "Admin Kab/Kota" ? (domisili as Domisili) : null,
+    };
+
     try {
       const { data, error } = await supabase
         .from("users")
-        .update({ 
-          username: username.trim(), 
-          role, 
-          domisili: domisili as Domisili 
-        })
+        .update(updateData)
         .eq("id", selectedUser.id)
         .select(); // Add select to get updated data
 
@@ -214,15 +218,22 @@ export default function AdminUsersPage() {
   const handleAddUser = async () => {
     const { email, password, username, role, domisili } = formData;
 
-    // Validation
-    if (!email.trim() || !password.trim() || !username.trim() || !role || !domisili) {
-      toast.error("Semua field harus diisi");
+    // Base validation
+    if (!email.trim() || !password.trim() || !username.trim() || !role) {
+      toast.error("Email, Password, Username, dan Role harus diisi");
       return;
     }
 
-    if (!DOMISILI_LIST.includes(domisili as Domisili)) {
-      toast.error("Domisili tidak valid");
-      return;
+    // Conditional validation for domisili
+    if (role === "Admin Kab/Kota") {
+      if (!domisili) {
+        toast.error("Domisili harus diisi untuk role Admin Kab/Kota");
+        return;
+      }
+      if (!DOMISILI_LIST.includes(domisili as Domisili)) {
+        toast.error("Domisili tidak valid");
+        return;
+      }
     }
 
     try {
@@ -234,7 +245,7 @@ export default function AdminUsersPage() {
           data: {
             username: username.trim(),
             role,
-            domisili,
+            domisili: role === "Admin Kab/Kota" ? domisili : null,
           },
         },
       });
@@ -257,7 +268,7 @@ export default function AdminUsersPage() {
           email: email.trim(),
           username: username.trim(),
           role,
-          domisili: domisili as Domisili,
+          domisili: role === "Admin Kab/Kota" ? (domisili as Domisili) : null,
         },
       ]);
 
@@ -278,12 +289,15 @@ export default function AdminUsersPage() {
   // Function to get badge color based on role
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
-      case "admin":
-        return "bg-indigo-100 text-indigo-700 dark:bg-indigo-700 dark:text-indigo-200";
-      case "kepala bidang":
+      case "Admin Provinsi":
+        return "bg-indigo-100 text-indigo-700 dark:bg-indigo-700 dark:text-indigo-200"; // Admin Provinsi
+      case "Kepala Bidang":
         return "bg-teal-100 text-teal-700 dark:bg-teal-700 dark:text-teal-200";
-      default:
-        return "bg-sky-100 text-sky-700 dark:bg-sky-700 dark:text-sky-200";
+      case "Kepala Dinas":
+        return "bg-purple-100 text-purple-700 dark:bg-purple-700 dark:text-purple-200"; // Kepala Dinas
+      case "Admin Kab/Kota":
+      default: // Default to Admin Kab/Kota
+        return "bg-sky-100 text-sky-700 dark:bg-sky-700 dark:text-sky-200"; // Admin Kab/Kota
     }
   };
 
@@ -415,32 +429,35 @@ export default function AdminUsersPage() {
                   <SelectValue placeholder="Pilih role" className="text-slate-900 dark:text-slate-100"/>
                 </SelectTrigger>
                 <SelectContent className="bg-white dark:bg-slate-700">
-                  <SelectItem value="user">User</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="kepala bidang">Kepala Bidang</SelectItem>
+                  <SelectItem value="Admin Kab/Kota">Admin Kab/Kota</SelectItem>
+                  <SelectItem value="Admin Provinsi">Admin Provinsi</SelectItem>
+                  <SelectItem value="Kepala Bidang">Kepala Bidang</SelectItem>
+                  <SelectItem value="Kepala Dinas">Kepala Dinas</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="domisili" className="text-right">
-                Domisili
-              </Label>
-              <Select 
-                value={formData.domisili} 
-                onValueChange={(value) => handleSelectChange("domisili", value)}
-              >
-                <SelectTrigger className="col-span-3 bg-slate-100 dark:bg-slate-700 border-slate-300 dark:border-slate-600 focus:ring-sky-500 text-slate-900 dark:text-slate-100">
-                  <SelectValue placeholder="Pilih domisili" className="text-slate-900 dark:text-slate-100"/>
-                </SelectTrigger>
-                <SelectContent className="bg-white dark:bg-slate-700">
-                  {DOMISILI_LIST.map((domisili) => (
-                    <SelectItem key={domisili} value={domisili}>
-                      {domisili}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {formData.role === "Admin Kab/Kota" && (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="domisili" className="text-right">
+                  Domisili
+                </Label>
+                <Select 
+                  value={formData.domisili || ''} 
+                  onValueChange={(value) => handleSelectChange("domisili", value)}
+                >
+                  <SelectTrigger className="col-span-3 bg-slate-100 dark:bg-slate-700 border-slate-300 dark:border-slate-600 focus:ring-sky-500 text-slate-900 dark:text-slate-100">
+                    <SelectValue placeholder="Pilih domisili" className="text-slate-900 dark:text-slate-100"/>
+                  </SelectTrigger>
+                  <SelectContent className="bg-white dark:bg-slate-700">
+                    {DOMISILI_LIST.map((domisili) => (
+                      <SelectItem key={domisili} value={domisili}>
+                        {domisili}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
           <DialogFooter className="pt-4 border-t border-slate-200 dark:border-slate-700">
             <Button 
@@ -544,32 +561,35 @@ export default function AdminUsersPage() {
                   <SelectValue placeholder="Pilih role" className="text-slate-900 dark:text-slate-100"/>
                 </SelectTrigger>
                 <SelectContent className="bg-white dark:bg-slate-700">
-                  <SelectItem value="user">User</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="kepala bidang">Kepala Bidang</SelectItem>
+                  <SelectItem value="Admin Kab/Kota">Admin Kab/Kota</SelectItem>
+                  <SelectItem value="Admin Provinsi">Admin Provinsi</SelectItem>
+                  <SelectItem value="Kepala Bidang">Kepala Bidang</SelectItem>
+                  <SelectItem value="Kepala Dinas">Kepala Dinas</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="add-domisili" className="text-right">
-                Domisili
-              </Label>
-              <Select 
-                value={formData.domisili} 
-                onValueChange={(value) => handleSelectChange("domisili", value)}
-              >
-                <SelectTrigger className="col-span-3 bg-slate-100 dark:bg-slate-700 border-slate-300 dark:border-slate-600 focus:ring-sky-500 text-slate-900 dark:text-slate-100">
-                  <SelectValue placeholder="Pilih domisili" className="text-slate-900 dark:text-slate-100"/>
-                </SelectTrigger>
-                <SelectContent className="bg-white dark:bg-slate-700">
-                  {DOMISILI_LIST.map((domisili) => (
-                    <SelectItem key={domisili} value={domisili}>
-                      {domisili}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {formData.role === "Admin Kab/Kota" && (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="add-domisili" className="text-right">
+                  Domisili
+                </Label>
+                <Select 
+                  value={formData.domisili} 
+                  onValueChange={(value) => handleSelectChange("domisili", value)}
+                >
+                  <SelectTrigger className="col-span-3 bg-slate-100 dark:bg-slate-700 border-slate-300 dark:border-slate-600 focus:ring-sky-500 text-slate-900 dark:text-slate-100">
+                    <SelectValue placeholder="Pilih domisili" className="text-slate-900 dark:text-slate-100"/>
+                  </SelectTrigger>
+                  <SelectContent className="bg-white dark:bg-slate-700">
+                    {DOMISILI_LIST.map((domisili) => (
+                      <SelectItem key={domisili} value={domisili}>
+                        {domisili}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
           <DialogFooter className="pt-4 border-t border-slate-200 dark:border-slate-700">
             <Button variant="outline" onClick={() => setIsAddDialogOpen(false)} className="border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">

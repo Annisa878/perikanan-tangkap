@@ -77,7 +77,7 @@ export default async function Dashboard() {
     .from('users')
     .select('*')
     .eq('id', user.id)
-    .eq('role', 'user')
+    .eq('role', 'Admin Kab/Kota')
     .single();
 
   if (userError || !userData) {

@@ -33,7 +33,7 @@ export default async function KepalaBidangDashboardPage() { // Renamed and made 
     redirect("/sign-in?message=Error loading profile");
   }
 
-  if (userProfile.role !== 'kepala bidang') {
+  if (userProfile.role !== 'Kepala Bidang') {
     // Redirect if not Kepala Bidang, perhaps to a generic dashboard or sign-in
     redirect("/?message=Access Denied"); 
   }

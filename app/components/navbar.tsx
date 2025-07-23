@@ -102,7 +102,7 @@ export default function Navbar() {
             .single();
 
           if (roleError) throw roleError;
-          setRole(userData?.role || "user");
+          setRole(userData?.role || "Admin Kab/Kota");
         }
       } catch (err: unknown) { // Type err as unknown
         let errorMessage = "An unknown error occurred while checking session.";
@@ -174,20 +174,20 @@ export default function Navbar() {
 
           {/* Menu Berdasarkan Role */}
           <div className="hidden md:flex space-x-1 items-center">
-            {role === "admin" ? (
+            {role === "Admin Provinsi" ? (
               <>{/* Reduced font size from text-sm to text-xs */}
                 <NavLink href="/pages/admin" icon={<LayoutDashboard size={16} />}>Dashboard</NavLink>
                 <NavLink href="/pages/admin/manage_user" icon={<Users size={16} />}>Manajemen User</NavLink>
                 <NavLink href="/pages/admin/data_pengajuan" icon={<FileText size={16} />}>Data Pengajuan</NavLink> {/* Changed icon */}
                 <NavLink href="/pages/admin/monitoring" icon={<FileText size={16} />}>Data Monitoring</NavLink> {/* Changed icon */}
               </> /* Reduced font size from text-sm to text-xs */
-            ) : role === "kepala bidang" ? (
+            ) : role === "Kepala Bidang" ? (
               <>
                 <NavLink href="/pages/kepala-bidang" icon={<LayoutDashboard size={16} />}>Dashboard</NavLink>
                 <NavLink href="/pages/kepala-bidang/verifikasi_pengajuan" icon={<FileCheck size={16} />}>Verifikasi Pengajuan</NavLink>
                 <NavLink href="/pages/kepala-bidang/verifikasi_monitoring" icon={<ClipboardList size={16} />}>Verifikasi Monitoring</NavLink>
               </>
-            ) : role === "kepala dinas" ? (
+            ) : role === "Kepala Dinas" ? (
               <>
                 <NavLink href="/pages/kepala-dinas" icon={<LayoutDashboard size={16} />}>Dashboard</NavLink>
                 <NavLink href="/pages/kepala-dinas/laporan-pengajuan" icon={<FileSpreadsheet size={16} />}>Laporan Pengajuan</NavLink>
@@ -375,20 +375,20 @@ export default function Navbar() {
               className="md:hidden overflow-hidden bg-white dark:bg-slate-800" // Added background for mobile menu container
             >
               <div className="bg-white shadow-lg rounded-b-lg mx-4 mb-4 overflow-hidden">
-                {role === "admin" ? (
+                {role === "Admin Provinsi" ? (
                   <>
                     <MobileNavLink href="/pages/admin" icon={<LayoutDashboard size={18} />}>Dashboard</MobileNavLink>
                     <MobileNavLink href="/pages/admin/manage_user" icon={<Users size={18} />}>Manajemen User</MobileNavLink>
                     <MobileNavLink href="/pages/admin/data_pengajuan" icon={<FileBarChart size={18} />}>Data Pengajuan</MobileNavLink>
                     <MobileNavLink href="/pages/admin/monitoring" icon={<FileBarChart size={18} />}>Monitoring Laporan</MobileNavLink>
                   </>
-                ) : role === "kepala bidang" ? (
+                ) : role === "Kepala Bidang" ? (
                   <>
                     <MobileNavLink href="/pages/kepala-bidang" icon={<LayoutDashboard size={18} />}>Dashboard</MobileNavLink>
                     <MobileNavLink href="/pages/kepala-bidang/verifikasi_pengajuan" icon={<FileCheck size={18} />}>Verifikasi Pengajuan</MobileNavLink>
                     <MobileNavLink href="/pages/kepala-bidang/verifikasi_monitoring" icon={<ClipboardList size={18} />}>Verifikasi Laporan</MobileNavLink> {/* Adjusted text */}
                   </>
-                ) : role === "kepala dinas" ? (
+                ) : role === "Kepala Dinas" ? (
                   <>
                     <MobileNavLink href="/pages/kepala-dinas" icon={<LayoutDashboard size={18} />}>Dashboard</MobileNavLink>
                     <MobileNavLink href="/pages/kepala-dinas/laporan-pengajuan" icon={<FileSpreadsheet size={18} />}>Laporan Pengajuan</MobileNavLink>

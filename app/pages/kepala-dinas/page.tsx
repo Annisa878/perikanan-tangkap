@@ -62,7 +62,7 @@ export default function KepalaDinasDashboardPage() {
           return;
         }
 
-        if (userProfile.role !== 'kepala dinas') {
+        if (userProfile.role !== 'Kepala Dinas') {
           setError("Akses ditolak. Halaman ini khusus untuk Kepala Dinas.");
           setIsLoading(false);
           // Optional: Redirect to home or sign-in page

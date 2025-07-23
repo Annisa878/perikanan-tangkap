@@ -22,6 +22,11 @@ export const signUpAction = async (formData: FormData) => {
     password,
     options: {
       emailRedirectTo: `${origin}/auth/callback`,
+      // Tambahkan data role dan username ke metadata auth user
+      data: {
+        username: username,
+        role: "Admin Kab/Kota",
+      }
     },
   });
 
@@ -42,7 +47,7 @@ export const signUpAction = async (formData: FormData) => {
       id: data.user.id,
       email: email,
       username: username,
-      role: "user",
+      role: "Admin Kab/Kota",
       domisili: domisili
     },
   ]);
@@ -67,47 +72,41 @@ export const signInAction = async (formData: FormData) => {
   const supabase = await createClient();
   
   // Coba login dengan email dan password
-  const { data, error } = await supabase.auth.signInWithPassword({
+  const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
     email,
     password,
   });
 
-  if (error || !data.user) {
-    console.error("Login error:", error?.message);
+  if (authError || !authData.user) {
+    console.error("Login error:", authError?.message);
     return encodedRedirect("error", "/sign-in", "Invalid email or password");
   }
-
-  // Simpan sesi autentikasi di cookie
-  const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-
-  if (sessionError || !sessionData.session) {
-    console.error("Session error:", sessionError?.message);
-    return encodedRedirect("error", "/sign-in", "Failed to store session.");
-  }
-
-  // Debugging: Pastikan session tersimpan
-  console.log("User ID:", data.user.id);
-  console.log("Session Data:", sessionData.session);
 
   // Ambil informasi role dari database
   const { data: profile, error: profileError } = await supabase
     .from("users")
     .select("role")
-    .eq("id", data.user.id)
+    .eq("id", authData.user.id)
     .single();
 
   if (profileError || !profile) {
-    return encodedRedirect("error", "/sign-in", "Failed to get user role");
+    // Tambahkan logging untuk melihat error dari database
+    console.error("Failed to get user profile:", profileError?.message);
+    // Redirect dengan pesan error yang lebih spesifik
+    return encodedRedirect("error", "/sign-in", "Could not find user profile. Please contact support.");
   }
 
+  // Debugging: Log role yang didapat dari database untuk memastikan nilainya benar
+  console.log(`User ${email} logged in with role: ${profile.role}`);
+
   switch (profile.role) {
-    case "admin":
+    case "Admin Provinsi":
       return redirect("/pages/admin");
-    case "kepala bidang":
+    case "Kepala Bidang":
       return redirect("/pages/kepala-bidang");
-    case "kepala dinas":
+    case "Kepala Dinas":
       return redirect("/pages/kepala-dinas");
-    case "user":
+    case "Admin Kab/Kota":
     default:
       return redirect("/pages/user");
   }
