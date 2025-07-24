@@ -36,7 +36,7 @@ export default function Login(props: { searchParams: Promise<Message> }) {
             Selamat Datang
           </h1>
           <p className="text-slate-500 dark:text-slate-400 mt-2 mb-6">
-            Masuk untuk melanjutkan ke dasbor Anda.
+            Masuk untuk melanjutkan ke dashboard Anda.
           </p>
         </div>
         <div className="flex flex-col gap-4">
